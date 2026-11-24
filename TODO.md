@@ -74,20 +74,21 @@ Two things learned on the way: `node --check` cannot parse `.ts` (it doesn't str
 is the only syntax gate for the server; and `tsc` needs a *second* project for the server, because
 the client's config has `lib: DOM` and no node types, and vice versa.
 
-### 2. Persistence — `node:sqlite`, no ORM
-The store dies on every restart; `README.md` says so. Node 26 ships `node:sqlite`, so this costs
-no dependency (verified here: `DatabaseSync`, `prepare`, `run`, `all` all work).
+### 2. ~~Persistence — `node:sqlite`, no ORM~~ — done
+`data/items.db`, one table, `DatabaseSync`, no dependency. `store.reset()` is gone: the store is
+now a *dependency* (`createStore(file)` → `createApp(store)`), so each test builds its own
+`:memory:` database in `beforeEach` and isolation comes from construction, not from a reset call.
 
-- One table: `items (id TEXT PRIMARY KEY, text TEXT NOT NULL)`.
-- Schema created at boot; the two seed rows inserted only when the table is empty.
-- `store.ts` keeps its current shape (`list`, `add`, `remove`, `reset`) — only the insides change,
-  so `api.test.js` stays as it is. Use `:memory:` in tests.
-- The file should live outside the repo (`.gitignore`, or `data/`).
+Two details worth keeping:
 
-### 3. Re-run the load test after (1)
-`npm run load` has a recorded baseline in `notes.md` (~80k req/s, in-memory, no validation).
-Schema validation on the request path is the first change that puts real work there, so measure
-before and after and record both with their conditions.
+- **Seed only when the table is created**, not when it is empty: asking "is it empty?" resurrects
+  the seed rows the first time someone deletes every item and restarts.
+- **`ORDER BY rowid`** — a `SELECT` without it has no order guarantee, and the tests assert one.
+
+### 3. ~~Re-run the load test~~ — done, and it finally said something
+In-memory: ~80,000 req/s. With SQLite doing a `SELECT` per request: **~50,300 req/s**, p50 1 ms,
+p99 4 ms. A real query in the request path costs ~30,000 req/s; the earlier numbers were measuring
+the socket loop. Numbers and conditions are in `notes.md`.
 
 ### 4. Housekeeping
 - Five local branches are merged into `main` and can be pruned (`git branch -d`).
@@ -103,7 +104,7 @@ before and after and record both with their conditions.
 npm run verify
 ```
 
-`npm run check` (tsc + `node --check`) → `npm run build` → `npm test` (16) → `npm run knip`. Stops
+`npm run check` (tsc ×2) → `npm run build` → `npm test` (25) → `npm run knip`. Stops
 at the first failure, ~2s warm. CI runs the same list plus `npm ci --dry-run`, on every push to
 `main` and every PR, as the required check `test`.
 

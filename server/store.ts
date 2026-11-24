@@ -1,3 +1,6 @@
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import type { Item } from "../shared/item.ts";
 
 const seed: Item[] = [
@@ -5,25 +8,62 @@ const seed: Item[] = [
   { id: "seed-2", text: "fetch from the server" },
 ];
 
-let items: Item[] = [...seed];
+export type Store = {
+  list(): Item[];
+  add(text: string): Item;
+  remove(id: string): boolean;
+  close(): void;
+};
 
-export function list(): Item[] {
-  return items;
-}
+/**
+ * `file` is a path or ":memory:". The store owns the SQLite handle, so callers get
+ * data, not a connection.
+ */
+export function createStore(file: string): Store {
+  if (file !== ":memory:") mkdirSync(dirname(file), { recursive: true });
 
-export function add(text: string): Item {
-  const item: Item = { id: crypto.randomUUID(), text };
-  items.push(item);
-  return item;
-}
+  const db = new DatabaseSync(file);
+  const existed = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'items'")
+    .get();
 
-export function remove(id: string): boolean {
-  const index = items.findIndex((item) => item.id === id);
-  if (index === -1) return false;
-  items.splice(index, 1);
-  return true;
-}
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS items (
+      id   TEXT PRIMARY KEY,
+      text TEXT NOT NULL
+    )
+  `);
 
-export function reset(next: Item[] = seed): void {
-  items = [...next];
+  // Seed only when the table is created. Deleting every item must stay deleted
+  // across a restart, so "is the table empty?" is the wrong question.
+  if (!existed) {
+    const insert = db.prepare("INSERT INTO items (id, text) VALUES (?, ?)");
+    for (const item of seed) insert.run(item.id, item.text);
+  }
+
+  const selectAll = db.prepare("SELECT id, text FROM items ORDER BY rowid");
+  const insertOne = db.prepare("INSERT INTO items (id, text) VALUES (?, ?)");
+  const deleteOne = db.prepare("DELETE FROM items WHERE id = ?");
+
+  return {
+    // Rows come back as null-prototype objects (`row.hasOwnProperty` throws, and
+    // deepStrictEqual fails against a plain object). The store owns the driver, so
+    // callers get plain items.
+    list: () => (selectAll.all() as Item[]).map((row) => ({ id: row.id, text: row.text })),
+
+    add(text) {
+      const item: Item = { id: crypto.randomUUID(), text };
+      insertOne.run(item.id, item.text);
+      return item;
+    },
+
+    remove(id) {
+      const result = deleteOne.run(id);
+      return Number(result.changes) > 0;
+    },
+
+    close() {
+      db.close();
+    },
+  };
 }

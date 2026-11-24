@@ -26,8 +26,17 @@ A number without its conditions is a rumour. Write the whole line:
 warm (3rd run), <machine/cpu count>
 ```
 
-Baseline on this machine, `main` @ 5cf699b, 4-second run: **~76,600 req/s**,
-p50 1 ms, p99 3 ms, max 74 ms.
+Measurements on this machine, `npm run load` (100 connections, 10s), second run, warm:
+
+| when | req/s (avg) | p50 | p99 |
+|---|---|---|---|
+| in-memory array, no request validation | ~80,000 | 1 ms | 3 ms |
+| + zod validation of POST bodies | (not measured separately) | | |
+| + SQLite: `SELECT` per request via `node:sqlite` | **~50,300** | 1 ms | 4 ms |
+
+The SQLite row is the first one that means anything: a real query inside the request path costs
+about 30,000 req/s, taking latency from 1 ms to 1.3 ms average. That is the shape of the trade —
+the earlier numbers were measuring the socket loop.
 
 ## What this can and cannot tell you
 

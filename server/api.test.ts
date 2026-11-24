@@ -1,10 +1,19 @@
-import { beforeEach, test } from "node:test";
+import { after, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
-import { app } from "./app.ts";
-import { reset } from "./store.ts";
+import { createApp } from "./app.ts";
+import { createStore, type Store } from "./store.ts";
 import type { Item } from "../shared/item.ts";
 
-beforeEach(() => reset());
+let app: ReturnType<typeof createApp>;
+let store: Store;
+
+// A fresh :memory: database per test — no reset endpoint, no shared state.
+beforeEach(() => {
+  store = createStore(":memory:");
+  app = createApp(store);
+});
+
+after(() => store.close());
 
 const post = (body: string) =>
   app.request("/api/items", {
@@ -16,7 +25,7 @@ const post = (body: string) =>
 const getItems = async (): Promise<Item[]> =>
   (await (await app.request("/api/items")).json()) as Item[];
 
-test("GET returns the stored items", async () => {
+test("GET returns the seeded items in insertion order", async () => {
   const res = await app.request("/api/items");
 
   assert.equal(res.status, 200);
