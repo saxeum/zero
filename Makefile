@@ -19,8 +19,8 @@ check: ## Type-check the client, syntax-check the server
 dev: ## Vite dev server on :5173 (proxies /api to :3000)
 	npm run dev
 
-api: ## API server on :3000
+api: ## API server on :3000, dev only
 	npm run api
 
-run: ## Serve the built client and the API from :3000
-	npm run start
+run: build ## Build, then serve client and API together on :3000
+	npm run api
