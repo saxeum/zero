@@ -26,6 +26,14 @@ jobs:
       - name: Types and syntax
         run: npm run check
 
+      # tsc and the tests never touch the bundler: a tree can be type-clean and
+      # test-green and still fail here.
+      - name: Build
+        run: npm run build
+
+      - name: Build output exists
+        run: test -f dist/index.html
+
       - name: Test
         run: npm test
 
