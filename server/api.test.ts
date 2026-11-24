@@ -2,7 +2,7 @@ import { after, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { createApp } from "./app.ts";
 import { createStore, type Store } from "./store.ts";
-import type { Item } from "../shared/item.ts";
+import type { Item } from "../shared/generated/models.ts";
 
 let app: ReturnType<typeof createApp>;
 let store: Store;

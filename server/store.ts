@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { Item } from "../shared/item.ts";
+import type { Item } from "../shared/generated/models.ts";
 
 const seed: Item[] = [
   { id: "seed-1", text: "learn useEffect" },

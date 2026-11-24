@@ -66,8 +66,8 @@ What is left to do is at the bottom, under **Next**.
 ## Next
 
 ### 1. ~~Server in TypeScript, sharing the schema, validating input~~ — done
-`server/` is `.ts`, run directly by Node (type stripping, no build, no `tsx`), and `shared/item.ts`
-holds the schemas both sides import. `POST` now rejects unknown and wrong-typed fields with 400
+`server/` is `.ts`, run directly by Node (type stripping, no build, no `tsx`), and the generated
+schemas in `shared/generated/` are imported directly by both sides. `POST` now rejects unknown and wrong-typed fields with 400
 instead of silently dropping them, and there are tests for both.
 
 Two things learned on the way: `node --check` cannot parse `.ts` (it doesn't strip types), so `tsc`
@@ -151,8 +151,8 @@ Every React bug in this repo so far was one of those two answered wrongly.
 ```
 openapi.yaml            the API contract — source of truth
 orval.config.ts         codegen config (zod client, strict objects)
-shared/generated/       generated types + zod validators, committed
-shared/item.ts          adapter: generated schemas under the app's names
+shared/generated/       generated types + zod validators, committed, imported directly
+shared/contract.test.ts the response validators, exercised directly
 index.html              Vite entry, loads /src/main.tsx
 src/main.tsx            createRoot + <StrictMode>
 src/App.tsx             layout: form, filter, list — 68 lines

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { parseItem, parseItems, type Item } from "../shared/item.ts";
+import { CreateItemResponse, ListItemsResponse } from "../shared/generated/api.ts";
+import type { Item } from "../shared/generated/models.ts";
 
 export function useItems() {
   const [items, setItems] = useState<Item[]>([]);
@@ -14,7 +15,7 @@ export function useItems() {
       try {
         const res = await fetch("/api/items", { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setItems(parseItems(await res.json()));
+        setItems(ListItemsResponse.parse(await res.json()));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setLoadError(err instanceof Error ? err.message : String(err));
@@ -37,7 +38,7 @@ export function useItems() {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const item = parseItem(await res.json());
+      const item = CreateItemResponse.parse(await res.json());
       setItems((prev) => [...prev, item]);
       return true;
     } catch (err) {

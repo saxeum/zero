@@ -12,7 +12,7 @@ time. `TODO.md` is the ladder, including what was deliberately skipped and why.
 - Client: React 18 + TypeScript, built by Vite
 - Server: Hono on Node, written in TypeScript and run directly (Node strips types)
 - Contract: **`openapi.yaml` is the source of truth.** `npm run codegen` (orval) generates the
-  TypeScript types and zod validators in `shared/generated/`, and both sides import those —
+  TypeScript types and zod validators in `shared/generated/`, imported directly by both sides —
   `npm run verify` fails if the spec and the generated output disagree
 - Persistence: `node:sqlite` (built into Node, no ORM, no dependency). The database is
   `data/items.db`, seeded once on first creation. `ZERO_DB=:memory:` overrides the path.
@@ -60,7 +60,7 @@ src/useItems.ts       the data hook: fetch, add, remove, both error slots
 openapi.yaml          the API contract — edit this first, then regenerate
 orval.config.ts       codegen config: zod client, strict objects
 shared/generated/     generated types + zod validators (committed, do not edit)
-shared/item.ts        adapts generated schemas to the names the app uses
+shared/contract.test.ts  the response validators, exercised directly
 server/app.ts         Hono routes — importable, never listens
 server/index.ts       static serving and listen; runs only when executed
 server/store.ts       SQLite via node:sqlite: createStore(file) → list/add/remove/close
