@@ -115,7 +115,8 @@ test-setup.ts         applies migrations and resets rows between tests
 ## API
 
 Three endpoints — `GET /api/items`, `POST /api/items`, `DELETE /api/items/{id}` — described in
-`openapi.yaml`, which is authoritative. Deliberately not repeated here: a second description of
+`openapi.yaml`, which is authoritative. `POST` rejects text over 1000 characters; `Item.text` is
+deliberately uncapped so existing rows stay readable if the limit ever changes. Deliberately not repeated here: a second description of
 the API is the drift this project spent a rung removing.
 
 ## Notes

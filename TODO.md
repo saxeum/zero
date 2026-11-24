@@ -191,7 +191,7 @@ A full read of the code with grades and evidence is in `docs/code-review.md` (re
 
 | | |
 |---|---|
-| #15 | cap item size — 1 MB items were accepted against production |
+| #15 | ~~cap item size~~ — done: `maxLength: 1000` on `NewItem.text`, writes only |
 | #16 | security headers and a CSP |
 | #17 | eslint with `react-hooks`, since no gate enforces hook rules |
 | #18 | paginate `GET /api/items` |

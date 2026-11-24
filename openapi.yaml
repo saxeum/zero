@@ -96,4 +96,8 @@ components:
       properties:
         text:
           type: string
-          description: Trimmed; must not be blank
+          # The cap is on the raw field, before trimming: it exists to bound the body and
+          # the stored row, not to police whitespace. It applies to writes only — Item.text
+          # is deliberately uncapped so existing rows stay readable.
+          maxLength: 1000
+          description: Trimmed; must not be blank; at most 1000 characters
