@@ -98,6 +98,26 @@ the socket loop. Numbers and conditions are in `notes.md`.
 - This file and `README.md` are the two documents that go stale first. Correct them in the same PR
   as the change that falsifies them.
 
+## Rung 8 — Spec first
+
+`openapi.yaml` is the contract; `npm run codegen` (orval) generates the types *and* the zod
+validators; both sides import the output. `npm run verify` runs codegen and fails on any diff, so
+the spec and the code cannot drift — which is the same problem the hand-written `Item` type and
+its hand-written validator had, solved one level up.
+
+- [x] Types and validators generated from the spec, not written twice
+- [x] `check:codegen` in `verify`: regenerate, then `git diff --exit-code`
+- [x] Strict objects enforced via `override.zod.strict`, because the generator drops
+      `additionalProperties: false` silently — without it, unknown keys are *stripped* and the
+      400 test passes for the wrong reason
+- [x] Full `zod` on the client (+18 kB gzip), chosen deliberately over hand-writing a second
+      schema. Note `orval` can emit `variant: "mini"` — one config word — if the bundle matters
+      more than the API surface later
+- [ ] `@hey-api/openapi-ts` is the more fashionable generator and **does not run on TypeScript 7**
+      (`ts.SyntaxKind` is undefined); orval 8 does. Worth re-checking each upgrade
+- [ ] Nothing measures the client bundle, so a dependency swap can add 20 kB unnoticed. That is
+      how the `zod/mini` → `zod` regression got in
+
 ## Gates
 
 ```sh
@@ -129,17 +149,21 @@ Every React bug in this repo so far was one of those two answered wrongly.
 ## Structure
 
 ```
+openapi.yaml            the API contract — source of truth
+orval.config.ts         codegen config (zod client, strict objects)
+shared/generated/       generated types + zod validators, committed
+shared/item.ts          adapter: generated schemas under the app's names
 index.html              Vite entry, loads /src/main.tsx
 src/main.tsx            createRoot + <StrictMode>
 src/App.tsx             layout: form, filter, list — 68 lines
 src/useItems.ts         the data hook: fetch, add, remove, both error slots
-shared/item.ts          zod schemas, runtime checks at both boundaries
 src/styles.css          plain CSS, no framework
 server/app.ts           Hono routes — importable, never listens
 server/index.ts         static + listen; runs only when executed (`import.meta.main`)
-server/store.ts         the in-memory list
-server/*.test.ts        API contract, static mount, spawned entry point
+server/store.ts         SQLite via node:sqlite: createStore(file) → list/add/remove/close
+server/*.test.ts        API contract, store, static mount, spawned entry point
 tsconfig.server.json    separate tsc project: node types, no DOM
+knip.json               ignore generated code
 .github/workflows/ci.yml  the gate
 ```
 

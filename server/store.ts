@@ -49,7 +49,8 @@ export function createStore(file: string): Store {
     // Rows come back as null-prototype objects (`row.hasOwnProperty` throws, and
     // deepStrictEqual fails against a plain object). The store owns the driver, so
     // callers get plain items.
-    list: () => (selectAll.all() as Item[]).map((row) => ({ id: row.id, text: row.text })),
+    list: () =>
+      (selectAll.all() as unknown as Item[]).map((row) => ({ id: row.id, text: row.text })),
 
     add(text) {
       const item: Item = { id: crypto.randomUUID(), text };

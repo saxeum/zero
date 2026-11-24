@@ -4,10 +4,7 @@ import assert from "node:assert/strict";
 import { parseItem, parseItems } from "./item.ts";
 
 test("parseItem accepts a well-formed item", () => {
-  assert.deepEqual(parseItem({ id: "a", text: "milk", extra: 1 }), {
-    id: "a",
-    text: "milk",
-  });
+  assert.deepEqual(parseItem({ id: "a", text: "milk" }), { id: "a", text: "milk" });
 });
 
 test("parseItem rejects a non-object", () => {
@@ -23,10 +20,12 @@ test("parseItem rejects missing or non-string fields", () => {
   assert.throws(() => parseItem({ id: "a", text: null }));
 });
 
+test("parseItem rejects unknown fields", () => {
+  assert.throws(() => parseItem({ id: "a", text: "milk", extra: 1 }));
+});
+
 test("parseItems accepts an array of items", () => {
-  assert.deepEqual(parseItems([{ id: "a", text: "milk" }]), [
-    { id: "a", text: "milk" },
-  ]);
+  assert.deepEqual(parseItems([{ id: "a", text: "milk" }]), [{ id: "a", text: "milk" }]);
   assert.deepEqual(parseItems([]), []);
 });
 

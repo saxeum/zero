@@ -1,18 +1,17 @@
-import * as z from "zod/mini";
+// Adapts the generated schemas to the names the app uses.
+//
+// Nothing here defines a shape: `openapi.yaml` does, and `npm run codegen` turns it
+// into `shared/generated/`. If a field is wrong, the spec is wrong.
+import type { Item, NewItem } from "./generated/model/index.ts";
+import { CreateItemBody, CreateItemResponse, ListItemsResponse } from "./generated/api.ts";
 
-const ItemSchema = z.object({
-  id: z.string(),
-  text: z.string(),
-});
+export type { Item, NewItem };
 
-export type Item = z.infer<typeof ItemSchema>;
+/** A `GET /api/items` response. */
+export const parseItems = (value: unknown): Item[] => ListItemsResponse.parse(value);
 
-/** Runtime check at the trust boundary: anything off-shape throws. */
-export const parseItem = (value: unknown): Item => ItemSchema.parse(value);
+/** A `POST /api/items` response. */
+export const parseItem = (value: unknown): Item => CreateItemResponse.parse(value);
 
-export const parseItems = (value: unknown): Item[] => z.array(ItemSchema).parse(value);
-
-/** Request body for POST /api/items. Unknown keys are rejected, not silently dropped. */
-const NewItemSchema = z.strictObject({ text: z.string() });
-
-export const parseNewItem = (value: unknown): { text: string } => NewItemSchema.parse(value);
+/** A `POST /api/items` request body. */
+export const parseNewItem = (value: unknown): NewItem => CreateItemBody.parse(value);
