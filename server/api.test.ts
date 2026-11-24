@@ -64,6 +64,21 @@ describe("POST /api/items", () => {
   test("rejects invalid JSON with 400, not 500", async () => {
     expect((await post("not json")).status).toBe(400);
   });
+
+  test("rejects text longer than the 1000-character cap", async () => {
+    // The cap exists to bound the body and the stored row: before it, a 1 MB item was
+    // accepted and every later GET shipped those bytes to every client.
+    const res = await post(JSON.stringify({ text: "x".repeat(1001) }));
+
+    expect(res.status).toBe(400);
+    expect(await items()).toHaveLength(2);
+  });
+
+  test("accepts text of exactly 1000 characters", async () => {
+    const res = await post(JSON.stringify({ text: "x".repeat(1000) }));
+
+    expect(res.status).toBe(201);
+  });
 });
 
 describe("DELETE /api/items/:id", () => {
