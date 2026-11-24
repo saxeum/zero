@@ -20,7 +20,8 @@
     "types": "wrangler types",
     "gen": "npm run codegen && npm run types",
     "prepare": "npm run gen",
-    "migrate": "wrangler d1 migrations apply zero --remote"
+    "migrate": "wrangler d1 migrations apply zero --remote",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "hono": "^4.13.21",

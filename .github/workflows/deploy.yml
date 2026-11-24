@@ -57,3 +57,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      # The only check that ever sees production. It creates one item and deletes it
+      # again. A failure here marks the run red but does not roll back — production is
+      # already updated by this point, which is worth knowing before trusting red/green.
+      - name: Smoke test the deployment
+        run: npm run smoke -- https://zero.foonix.net
