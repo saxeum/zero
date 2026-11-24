@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "api": "node server/index.js",
-    "typecheck": "tsc --noEmit"
+    "check": "tsc --noEmit && node --check server/index.js && node --check server/store.js",
+    "start": "npm run build && npm run api"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",

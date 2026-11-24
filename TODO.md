@@ -82,23 +82,24 @@ Nearly every React bug is one of those two answered wrongly.
 ## Structure
 
 ```
-static/index.html   page shell: CDN React + Babel, then the client scripts in order
-src/App.jsx         the component
-src/main.jsx        mounts <App /> into #root
-server/index.js     Hono app: /api/items, then static
+index.html          Vite entry, loads /src/main.tsx
+src/main.tsx        createRoot + <StrictMode>
+src/App.tsx         the component
+server/index.js     Hono app: /api/items, plus dist/ in prod
 server/store.js     the in-memory list (mutated on the server, which is correct there)
-check.mjs           JSX compile check, run by `make check`
+vite.config.ts      react plugin + /api proxy to :3000
 ```
 
-No bundler: `static/index.html` loads `App.jsx` before `main.jsx` because scripts share globals
-and imports are not resolved. That ordering constraint is what a bundler exists to remove.
+`npm run dev` is the client on :5173, `npm run api` is the API on :3000, `npm start` builds
+and serves both from :3000. `npm run` with no arguments lists the scripts.
 
 ## Reference
 
-- Learn the loop, not the framework: `make help`, `make check`, `make run`.
+- Learn the loop, not the framework: `npm run` lists the scripts, `npm run check` before you
+  trust a change, `npm start` to serve the real thing.
 - Load-test one-liner in `notes.md` (autocannon).
-- `server/index.js` serves `static/` as the public root and `/src/*` as client source. It knows
-  nothing about React.
+- `server/index.js` serves `dist/` as the public root when it exists, and nothing else; in dev,
+  Vite serves the client on :5173 and proxies `/api` to :3000.
 - The hand-rolled `node:http` server is in git history (`main`, commit `98293d6`), 87 lines versus
   31 for the Hono version.
 - Development builds warn and double-invoke; production builds do neither. Swap the two CDN
