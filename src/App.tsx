@@ -65,11 +65,18 @@ export function App() {
   return (
     <div>
       <h1>items</h1>
-      <input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-      />
-      <button onClick={add}>Add</button>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          add();
+        }}
+      >
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <button type="submit">Add</button>
+      </form>
       <ul>
         {items.map((row) => (
           <li key={row.id}>
