@@ -7,7 +7,7 @@ export default defineConfig({
       mode: "single",
       target: "./shared/generated/api.ts",
       client: "zod",
-      schemas: { path: "./shared/generated/model" },
+      schemas: { path: "./shared/generated/models.ts", mode: "single" },
       clean: true,
       override: {
         zod: {

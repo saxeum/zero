@@ -2,7 +2,7 @@
 //
 // Nothing here defines a shape: `openapi.yaml` does, and `npm run codegen` turns it
 // into `shared/generated/`. If a field is wrong, the spec is wrong.
-import type { Item, NewItem } from "./generated/model/index.ts";
+import type { Item, NewItem } from "./generated/models.ts";
 import { CreateItemBody, CreateItemResponse, ListItemsResponse } from "./generated/api.ts";
 
 export type { Item, NewItem };

@@ -10,6 +10,14 @@
  *
  * OpenAPI spec version: 1.0.0
  */
+export interface Item {
+  /** Assigned by the server */
+  id: string;
+  text: string;
+}
 
-export * from './item.ts';
-export * from './newItem.ts';
+export interface NewItem {
+  /** Trimmed; must not be blank */
+  text: string;
+}
+
