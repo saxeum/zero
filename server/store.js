@@ -12,3 +12,10 @@ export function add(text) {
   items.push(item);
   return item;
 }
+
+export function remove(id) {
+  const index = items.findIndex((item) => item.id === id);
+  if (index === -1) return false;
+  items.splice(index, 1);
+  return true;
+}

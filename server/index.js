@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { add, list } from "./store.js";
+import { add, list, remove } from "./store.js";
 
 const app = new Hono();
 
@@ -15,6 +15,12 @@ app.post("/api/items", async (c) => {
   if (!text) return c.text("text required\n", 400);
 
   return c.json(add(text), 201);
+});
+
+app.delete("/api/items/:id", (c) => {
+  const id = c.req.param("id");
+  if (!remove(id)) return c.text("not found\n", 404);
+  return c.body(null, 204);
 });
 
 // Client source: fetched and compiled by Babel in the browser.

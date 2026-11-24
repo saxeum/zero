@@ -45,7 +45,15 @@ function App() {
     }
   };
 
-  const remove = (id) => setItems((prev) => prev.filter((x) => x.id !== id));
+  const remove = async (id) => {
+    try {
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   if (loading) return <p>Loading…</p>;
   if (error) return <p>Failed: {error}</p>;
