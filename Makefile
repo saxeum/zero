@@ -9,7 +9,8 @@ build: ## Install dependencies from the lockfile
 	npm ci
 
 check: ## Syntax-check the server, compile the JSX client
-	node --check server.js
+	node --check server/index.js
+	node --check server/store.js
 	node --no-warnings check.mjs
 
 run: ## Start the server on http://localhost:3000

@@ -62,7 +62,8 @@ call.
 
 - [ ] Only worth it once the `e(...)` nesting actually hurts
 - [ ] Note what it costs: a dependency tree, a dev server, a build step
-- [ ] Compare against the hand-written file — the transform is visible in reverse
+- [ ] Compare against the hand-written version in git history — the transform is visible in
+      reverse
 
 ## Skip until absence hurts
 
@@ -78,10 +79,27 @@ Before touching code, answer two questions:
 
 Nearly every React bug is one of those two answered wrongly.
 
+## Structure
+
+```
+static/index.html   page shell: CDN React + Babel, then the client scripts in order
+src/App.jsx         the component
+src/main.jsx        mounts <App /> into #root
+server/index.js     Hono app: /api/items, then static
+server/store.js     the in-memory list (mutated on the server, which is correct there)
+check.mjs           JSX compile check, run by `make check`
+```
+
+No bundler: `static/index.html` loads `App.jsx` before `main.jsx` because scripts share globals
+and imports are not resolved. That ordering constraint is what a bundler exists to remove.
+
 ## Reference
 
+- Learn the loop, not the framework: `make help`, `make check`, `make run`.
 - Load-test one-liner in `notes.md` (autocannon).
-- `server.js` is a static file server and knows nothing about React; it reads from disk per
-  request and sets no cache headers.
+- `server/index.js` serves `static/` as the public root and `/src/*` as client source. It knows
+  nothing about React.
+- The hand-rolled `node:http` server is in git history (`main`, commit `98293d6`), 87 lines versus
+  31 for the Hono version.
 - Development builds warn and double-invoke; production builds do neither. Swap the two CDN
   URLs to see the difference.
