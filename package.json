@@ -11,7 +11,9 @@
     "start": "npm run build && npm run api",
     "test": "node --test server/ src/",
     "coverage": "node --test --experimental-test-coverage server/",
-    "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items"
+    "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items",
+    "knip": "knip",
+    "verify": "npm run check && npm test && npm run knip"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
@@ -26,6 +28,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.3.0",
     "autocannon": "^9.0.0",
+    "knip": "^6.48.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"
   }

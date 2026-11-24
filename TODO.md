@@ -115,6 +115,21 @@ The compiler believes `res.json()`. Types stop at the network edge; validation d
 `useReducer`, context, `useMemo` / `useCallback`, refs beyond debugging, portals, error
 boundaries, Suspense. Each solves a problem not yet present.
 
+## Gates
+
+One command, three checks, and it can fail:
+
+```sh
+npm run verify
+```
+
+which is `npm run check` (tsc + `node --check`) → `npm test` (16 tests) → `npm run knip` (dead code).
+The chain stops at the first failure. ~1s on a warm tree.
+
+There is no CI yet — no remote is configured. Until there is, this command *is* the check, so it
+belongs in the acceptance block of whatever ticket you are working on. Nothing else will remember
+to run it.
+
 ## Habit
 
 Before touching code, answer two questions:
