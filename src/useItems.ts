@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { parseItem, parseItems, type Item } from "./item";
 
-export type Item = { id: string; text: string };
+export type { Item };
 
 export function useItems() {
   const [items, setItems] = useState<Item[]>([]);
@@ -15,7 +16,7 @@ export function useItems() {
       try {
         const res = await fetch("/api/items", { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setItems(await res.json());
+        setItems(parseItems(await res.json()));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setLoadError(err instanceof Error ? err.message : String(err));
@@ -38,7 +39,7 @@ export function useItems() {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const item: Item = await res.json();
+      const item = parseItem(await res.json());
       setItems((prev) => [...prev, item]);
       return true;
     } catch (err) {

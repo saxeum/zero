@@ -92,6 +92,20 @@ Two sources of truth is one bug; one error state for two kinds of failure is ano
       the static mount is a module-level flag
 - [ ] `useReducer` when several `useState`s always change together; not yet
 
+## Rung 7 — The boundary
+
+The compiler believes `res.json()`. Types stop at the network edge; validation doesn't.
+
+- [x] `parseItem` / `parseItems` check the shape at runtime and throw, so bad data lands in the
+      existing error path instead of becoming state — shown by making the server return `{id: 1}`
+- [x] Client-side guards are unit-tested with `node --test`; Node 26 strips types, so a `.ts` file
+      runs with no build and no browser
+- [ ] The server still validates nothing but `text` on POST — extra or wrong-typed fields are
+      silently dropped by the handler, not rejected
+- [ ] zod would replace ~20 hand-written lines. Hand-rolled first, so the trade is visible
+- [ ] Re-run `npm run load` after a validation change: this is the first change that puts real
+      work on the request path, so the benchmark finally has something to measure
+
 ## Skip until absence hurts
 
 `useReducer`, context, `useMemo` / `useCallback`, refs beyond debugging, portals, error
