@@ -29,6 +29,10 @@ button {
   cursor: pointer;
 }
 
+input {
+  margin-right: 0.5rem;
+}
+
 button:hover {
   background: #262626;
 }
