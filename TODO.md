@@ -65,6 +65,26 @@ call.
 - [ ] Compare against the hand-written version in git history — the transform is visible in
       reverse
 
+## Rung 5 — State design, and where errors live
+
+Two sources of truth is one bug; one error state for two kinds of failure is another.
+
+- [x] Load failure guards the app; action failure is a banner with the list still live
+- [x] Every action clears the previous error first, so the banner can't describe a stale failure
+- [x] The filter is derived during render — `query` is state, the filtered list is not
+- [x] No effect anywhere to keep two values in sync
+- [x] A failed add keeps the draft text, so the work isn't lost
+- [ ] Notice when this needs `useReducer` (several fields always changing together)
+
+## Rung 6 — Custom hooks, then tests
+
+- [ ] `useItems()` returning `{ items, loading, error, add, remove }` — a hook is a function that
+      calls hooks, nothing more
+- [ ] `node:test` against the Hono app via `app.request("/api/items")` — no browser, no new deps
+- [ ] Cover the gates that already exist: 201, 400 on blank text, 400 on bad JSON, 204, 404 on a
+      second delete
+- [ ] Browser-level tests only if a bug needs them
+
 ## Skip until absence hurts
 
 `useReducer`, context, `useMemo` / `useCallback`, refs beyond debugging, portals, error

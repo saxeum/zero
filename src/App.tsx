@@ -5,8 +5,10 @@ type Item = { id: string; text: string };
 export function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [draft, setDraft] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -18,7 +20,7 @@ export function App() {
         setItems(await res.json());
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : String(err));
+        setLoadError(err instanceof Error ? err.message : String(err));
       }
       setLoading(false);
     }
@@ -34,6 +36,7 @@ export function App() {
 
   const add = async () => {
     if (!draft.trim()) return;
+    setActionError(null);
     try {
       const res = await fetch("/api/items", {
         method: "POST",
@@ -45,22 +48,28 @@ export function App() {
       setItems((prev) => [...prev, item]);
       setDraft("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setActionError(err instanceof Error ? err.message : String(err));
     }
   };
 
   const remove = async (id: string) => {
+    setActionError(null);
     try {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setItems((prev) => prev.filter((x) => x.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setActionError(err instanceof Error ? err.message : String(err));
     }
   };
 
+  const needle = query.trim().toLowerCase();
+  const visible = needle
+    ? items.filter((item) => item.text.toLowerCase().includes(needle))
+    : items;
+
   if (loading) return <p>Loading…</p>;
-  if (error) return <p>Failed: {error}</p>;
+  if (loadError) return <p>Failed to load: {loadError}</p>;
 
   return (
     <div>
@@ -77,8 +86,20 @@ export function App() {
         />
         <button type="submit">Add</button>
       </form>
+      {actionError && (
+        <p className="error" role="alert">
+          {actionError}
+        </p>
+      )}
+      <input
+        className="filter"
+        aria-label="filter items"
+        placeholder="filter"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
       <ul>
-        {items.map((row) => (
+        {visible.map((row) => (
           <li key={row.id}>
             {row.text}
             <button
@@ -90,6 +111,7 @@ export function App() {
           </li>
         ))}
       </ul>
+      {needle && visible.length === 0 && <p className="muted">no matches</p>}
     </div>
   );
 }

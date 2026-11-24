@@ -54,6 +54,24 @@ form button:hover {
   outline-offset: 1px;
 }
 
+.error {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem;
+  border: 1px solid #f66;
+  border-radius: 4px;
+  color: #f66;
+}
+
+.filter {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.muted {
+  margin: 0.5rem 0 0;
+  color: #666;
+}
+
 ul {
   margin: 0.5rem 0 0;
   padding: 0;
