@@ -1,0 +1,13 @@
+version: 2
+
+updates:
+  # Actions are pinned to commit SHAs in ci.yml; without this they go stale silently.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
