@@ -45,7 +45,7 @@ input {
   min-width: 0;
 }
 
-button:hover {
+form button:hover {
   background: #262626;
 }
 
@@ -82,6 +82,5 @@ li button {
 }
 
 li button:hover {
-  background: none;
   color: #f66;
 }
