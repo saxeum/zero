@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zero",
+  "main": "server/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zero",
+      "database_id": "03de2bb9-a056-4f67-ac3c-4718eb252cf9",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "routes": [{ "pattern": "zero.foonix.net", "custom_domain": true }]
+}

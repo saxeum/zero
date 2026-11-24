@@ -1,30 +1,30 @@
 import { Hono } from "hono";
-import type { Store } from "./store.ts";
+import { createStore } from "./store.ts";
 import { CreateItemBody } from "../shared/generated/api.ts";
 
-export function createApp(store: Store) {
-  const app = new Hono();
+export const app = new Hono<{ Bindings: Env }>();
 
-  app.get("/api/items", (c) => c.json(store.list(), 200, { "Cache-Control": "no-store" }));
+app.get("/api/items", async (c) =>
+  c.json(await createStore(c.env.DB).list(), 200, { "Cache-Control": "no-store" }),
+);
 
-  app.post("/api/items", async (c) => {
-    const body = await c.req.json().catch(() => undefined);
+app.post("/api/items", async (c) => {
+  const body = await c.req.json().catch(() => undefined);
 
-    let text: string;
-    try {
-      text = CreateItemBody.parse(body).text.trim();
-    } catch {
-      return c.text("invalid body\n", 400);
-    }
-    if (!text) return c.text("text required\n", 400);
+  let text: string;
+  try {
+    text = CreateItemBody.parse(body).text.trim();
+  } catch {
+    return c.text("invalid body\n", 400);
+  }
+  if (!text) return c.text("text required\n", 400);
 
-    return c.json(store.add(text), 201);
-  });
+  return c.json(await createStore(c.env.DB).add(text), 201);
+});
 
-  app.delete("/api/items/:id", (c) => {
-    if (!store.remove(c.req.param("id"))) return c.text("not found\n", 404);
-    return c.body(null, 204);
-  });
-
-  return app;
-}
+app.delete("/api/items/:id", async (c) => {
+  if (!(await createStore(c.env.DB).remove(c.req.param("id")))) {
+    return c.text("not found\n", 404);
+  }
+  return c.body(null, 204);
+});

@@ -17,8 +17,9 @@ jobs:
           cache: npm
 
       # Fails if package.json and package-lock.json disagree: the two must move together.
+      # --ignore-scripts because a dry run has no node_modules, and `prepare` needs them.
       - name: Check lockfile
-        run: npm ci --dry-run
+        run: npm ci --dry-run --ignore-scripts
 
       - name: Install dependencies
         run: npm ci

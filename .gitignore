@@ -1,4 +1,9 @@
 node_modules/
 .ruff_cache/
 dist/
-data/
+.wrangler/
+coverage/
+
+# Generated, never committed — `npm ci` runs `prepare`, which builds them.
+shared/generated/
+worker-configuration.d.ts

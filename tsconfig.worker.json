@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -9,7 +11,13 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"]
+    "types": []
   },
-  "include": ["server", "shared"]
+  "include": [
+    "server",
+    "shared",
+    "worker-configuration.d.ts",
+    "vitest.config.ts",
+    "test-setup.ts"
+  ]
 }
