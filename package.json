@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "api": "node server/index.js",
-    "check": "tsc --noEmit && node --check server/app.js && node --check server/index.js && node --check server/store.js",
-    "start": "npm run build && npm run api",
-    "test": "node --test server/ src/",
-    "coverage": "node --test --experimental-test-coverage server/",
+    "api": "node server/index.ts",
+    "check": "tsc -p tsconfig.json && tsc -p tsconfig.server.json",
+    "start": "npm run build && node server/index.ts",
+    "test": "node --test server/ shared/",
+    "coverage": "node --test --experimental-test-coverage server/ shared/",
     "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items",
     "knip": "knip",
     "verify": "npm run check && npm run build && npm test && npm run knip"

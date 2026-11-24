@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { parseItem, parseItems, type Item } from "./item";
+import { parseItem, parseItems, type Item } from "../shared/item.ts";
 
 export function useItems() {
   const [items, setItems] = useState<Item[]>([]);

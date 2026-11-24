@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const entry = fileURLToPath(new URL("./index.js", import.meta.url));
+const entry = fileURLToPath(new URL("./index.ts", import.meta.url));
 
 test("the entry point starts a server and reports its port", async () => {
   const child = spawn(process.execPath, [entry], {

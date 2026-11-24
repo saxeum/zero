@@ -10,8 +10,9 @@ time. `TODO.md` is the ladder, including what was deliberately skipped and why.
 ## Stack
 
 - Client: React 18 + TypeScript, built by Vite
-- Server: Hono on `node:http` by way of `@hono/node-server`
-- No database. An in-memory array in `server/store.js` — items vanish when the process restarts.
+- Server: Hono on Node, written in TypeScript and run directly (Node strips types)
+- Shared: zod schemas in `shared/`, imported by both sides
+- No database. An in-memory array in `server/store.ts` — items vanish when the process restarts.
 
 ## Running it
 
@@ -37,8 +38,8 @@ npm run dev   # :5173, Vite with HMR, proxying /api to :3000
 | `npm run api` | API only on :3000 (dev) |
 | `npm run build` | build the client into `dist/` |
 | `npm start` | build, then serve client and API on :3000 |
-| `npm run check` | `tsc --noEmit` + `node --check` on the server files |
-| `npm test` | `node --test` — API, client guards, entry point |
+| `npm run check` | `tsc` for the client and, separately, for the server |
+| `npm test` | `node --test` — 18 tests: API, shared guards, entry point |
 | `npm run coverage` | tests plus Node's built-in coverage report |
 | `npm run knip` | dead code and unused exports |
 | `npm run verify` | `check` + `build` + `test` + `knip`, the gate CI runs |
@@ -51,10 +52,10 @@ index.html            Vite entry
 src/main.tsx          createRoot + StrictMode
 src/App.tsx           layout: form, filter, list
 src/useItems.ts       the data hook: fetch, add, remove, both error slots
-src/item.ts           zod schema and the runtime check at the network boundary
-server/app.js         Hono routes — importable, never listens
-server/index.js       static serving and listen; runs only when executed
-server/store.js       the in-memory list
+shared/item.ts        zod schemas, runtime checks at both boundaries
+server/app.ts         Hono routes — importable, never listens
+server/index.ts       static serving and listen; runs only when executed
+server/store.ts       the in-memory list
 ```
 
 ## API
@@ -62,7 +63,7 @@ server/store.js       the in-memory list
 | | | |
 |---|---|---|
 | `GET /api/items` | 200 | the full list |
-| `POST /api/items` | 201 / 400 | body `{ "text": "..." }`, blank or malformed rejected |
+| `POST /api/items` | 201 / 400 | body `{ "text": "..." }`; blank, wrong-typed or **unknown** fields rejected |
 | `DELETE /api/items/:id` | 204 / 404 | 404 on a second delete |
 
 ## Notes
