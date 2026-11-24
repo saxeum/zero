@@ -161,9 +161,14 @@ static-serving tests (assets are the binding's job, verified against the live UR
 
 ### Still to do after the deploy
 
-- [ ] **Nothing deploys automatically.** `npm run deploy` is manual by choice; GitHub Actions with
-      a scoped Cloudflare API token is the follow-up. Until it exists the live site can drift from
-      `main` with nothing noticing.
+- [x] **Deploy on merge.** `.github/workflows/deploy.yml` runs `verify` → `npm run migrate` →
+      `npm run deploy` on every push to `main`, with a concurrency group so two merges cannot race
+      into production, and a credential check that fails by name rather than with a wrangler auth
+      error. Needs `CLOUDFLARE_API_TOKEN` (secret) and `CLOUDFLARE_ACCOUNT_ID` (variable), both
+      human-created.
+- [ ] **Migrations run before the Worker, so they must stay additive.** Documented in the workflow
+      and the README; a destructive change needs two deploys (expand, then contract). Nothing
+      enforces that yet — a reviewer does, which is why it is written down.
 - [ ] No gate looks at the deployed Worker. The live URL was verified by hand — assets, D1, POST,
       DELETE, a browser round trip — and a smoke test against `zero.foonix.net` after deploy would
       catch a bad binding or a missing migration.

@@ -59,8 +59,29 @@ npx wrangler d1 migrations apply zero --local
 | `npm run knip` | dead code and unused exports |
 | `npm run verify` | `check` → `check:codegen` → `build` → `budget` → `test` → `knip`, the gate CI runs |
 | `npm run deploy` | build, then `wrangler deploy` |
+| `npm run migrate` | apply `migrations/` to the remote D1 |
 | `npm run types` | regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 | `npm run load` | `autocannon` against a local `wrangler dev` |
+
+## Deploying
+
+Pushing to `main` deploys. `.github/workflows/deploy.yml` runs `verify`, applies the D1
+migrations, then `wrangler deploy` — so nothing reaches production unless the same six gates
+passed locally.
+
+Two things must exist in the repository, both created by a human:
+
+| | | |
+|---|---|---|
+| secret | `CLOUDFLARE_API_TOKEN` | scoped to this account, Workers Scripts:Edit, D1:Edit, and the zone for the custom domain |
+| variable | `CLOUDFLARE_ACCOUNT_ID` | `d6731c0c283d979c42e1a7b0aba0d4b6` |
+
+Migrations run **before** the Worker, which is only safe while they are additive — an old Worker
+tolerates a new column, a new Worker does not tolerate a missing one. Destructive changes take two
+deploys: expand, then contract.
+
+`npm run deploy` still works from a laptop, and until the secret exists it is the only way to ship.
+That makes it the one documented exception to "nothing is applied outside the pipeline".
 
 ## Layout
 
