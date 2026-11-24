@@ -102,7 +102,11 @@ The compiler believes `res.json()`. Types stop at the network edge; validation d
       runs with no build and no browser
 - [ ] The server still validates nothing but `text` on POST — extra or wrong-typed fields are
       silently dropped by the handler, not rejected
-- [ ] zod would replace ~20 hand-written lines. Hand-rolled first, so the trade is visible
+- [x] Hand-rolled guards replaced by `zod/mini`: the type is now `z.infer<typeof ItemSchema>`, so
+      schema and type can't drift. Cost measured: +13 kB raw / **+4.8 kB gzip** on the client
+      bundle (`zod` full was +78 kB / +22.8 kB gzip — that's the version to avoid here)
+- [ ] The server is still plain JS with no shared schema. Half the value waits on the server being
+      TS and importing the same `ItemSchema` for request validation
 - [ ] Re-run `npm run load` after a validation change: this is the first change that puts real
       work on the request path, so the benchmark finally has something to measure
 
