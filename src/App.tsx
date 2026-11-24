@@ -1,10 +1,14 @@
-function App() {
-  const [items, setItems] = React.useState([]);
-  const [draft, setDraft] = React.useState("");
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(null);
+import { useEffect, useState } from "react";
 
-  React.useEffect(() => {
+type Item = { id: string; text: string };
+
+export function App() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
@@ -13,8 +17,8 @@ function App() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setItems(await res.json());
       } catch (err) {
-        if (err.name === "AbortError") return;
-        setError(err.message);
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
       }
       setLoading(false);
     }
@@ -24,7 +28,7 @@ function App() {
     return () => controller.abort();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.title = `Items: ${items.length}`;
   }, [items]);
 
@@ -37,21 +41,21 @@ function App() {
         body: JSON.stringify({ text: draft }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const item = await res.json();
+      const item: Item = await res.json();
       setItems((prev) => [...prev, item]);
       setDraft("");
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
-  const remove = async (id) => {
+  const remove = async (id: string) => {
     try {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setItems((prev) => prev.filter((x) => x.id !== id));
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 

@@ -1,17 +1,26 @@
 .DEFAULT_GOAL := help
-.PHONY: help build check run
+.PHONY: help install build check dev api run
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-9s\033[0m %s\n", $$1, $$2}'
 
-build: ## Install dependencies from the lockfile
+install: ## Install dependencies from the lockfile
 	npm ci
 
-check: ## Syntax-check the server, compile the JSX client
+build: ## Build the client into dist/
+	npm run build
+
+check: ## Type-check the client, syntax-check the server
+	npm run typecheck
 	node --check server/index.js
 	node --check server/store.js
-	node --no-warnings check.mjs
 
-run: ## Start the server on http://localhost:3000
-	npm start
+dev: ## Vite dev server on :5173 (proxies /api to :3000)
+	npm run dev
+
+api: ## API server on :3000
+	npm run api
+
+run: ## Serve the built client and the API from :3000
+	npm run start

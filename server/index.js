@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { existsSync } from "node:fs";
 import { add, list, remove } from "./store.js";
 
 const app = new Hono();
@@ -23,11 +24,8 @@ app.delete("/api/items/:id", (c) => {
   return c.body(null, 204);
 });
 
-// Client source: fetched and compiled by Babel in the browser.
-app.use("/src/*", serveStatic({ root: "." }));
-
-// Everything else is a public asset.
-app.use("/*", serveStatic({ root: "./static" }));
+// Production only: the built client. In dev, Vite serves it and proxies /api here.
+if (existsSync("./dist")) app.use("/*", serveStatic({ root: "./dist" }));
 
 serve({ fetch: app.fetch, port: 3000 }, (info) => {
   console.log(`listening on http://localhost:${info.port}`);
