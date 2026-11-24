@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-export const ItemSchema = z.object({
+const ItemSchema = z.object({
   id: z.string(),
   text: z.string(),
 });
