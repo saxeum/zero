@@ -65,14 +65,14 @@ What is left to do is at the bottom, under **Next**.
 
 ## Next
 
-### 1. Server in TypeScript, sharing the schema, validating input
-`ItemSchema` lives in `src/` and the server is plain JS that has never heard of it, so
-`POST {"text":"x","id":"whatever"}` is accepted and the extras are silently dropped.
+### 1. ~~Server in TypeScript, sharing the schema, validating input~~ — done
+`server/` is `.ts`, run directly by Node (type stripping, no build, no `tsx`), and `shared/item.ts`
+holds the schemas both sides import. `POST` now rejects unknown and wrong-typed fields with 400
+instead of silently dropping them, and there are tests for both.
 
-- Node 26 strips types, so `server/*.js` can become `.ts` and run with no build step and no `tsx`
-  dependency. Imports become explicit `.ts` paths.
-- Then `app.post` validates with the same schema the client uses — one definition, both directions.
-- `npm run check` needs a `tsc -p tsconfig.server.json` (or a widening of the current one).
+Two things learned on the way: `node --check` cannot parse `.ts` (it doesn't strip types), so `tsc`
+is the only syntax gate for the server; and `tsc` needs a *second* project for the server, because
+the client's config has `lib: DOM` and no node types, and vice versa.
 
 ### 2. Persistence — `node:sqlite`, no ORM
 The store dies on every restart; `README.md` says so. Node 26 ships `node:sqlite`, so this costs
@@ -80,7 +80,7 @@ no dependency (verified here: `DatabaseSync`, `prepare`, `run`, `all` all work).
 
 - One table: `items (id TEXT PRIMARY KEY, text TEXT NOT NULL)`.
 - Schema created at boot; the two seed rows inserted only when the table is empty.
-- `store.js` keeps its current shape (`list`, `add`, `remove`, `reset`) — only the insides change,
+- `store.ts` keeps its current shape (`list`, `add`, `remove`, `reset`) — only the insides change,
   so `api.test.js` stays as it is. Use `:memory:` in tests.
 - The file should live outside the repo (`.gitignore`, or `data/`).
 
@@ -107,7 +107,7 @@ npm run verify
 at the first failure, ~2s warm. CI runs the same list plus `npm ci --dry-run`, on every push to
 `main` and every PR, as the required check `test`.
 
-Coverage: `npm run coverage`. Note it only sees modules the test process loaded — `index.js` was
+Coverage: `npm run coverage`. Note it only sees modules the test process loaded — `index.ts` was
 invisible until it became importable, and the spawned entry-point test contributes 0% because it
 is a separate process.
 
@@ -132,12 +132,13 @@ index.html              Vite entry, loads /src/main.tsx
 src/main.tsx            createRoot + <StrictMode>
 src/App.tsx             layout: form, filter, list — 68 lines
 src/useItems.ts         the data hook: fetch, add, remove, both error slots
-src/item.ts             zod schema and the runtime check at the boundary
+shared/item.ts          zod schemas, runtime checks at both boundaries
 src/styles.css          plain CSS, no framework
-server/app.js           Hono routes — importable, never listens
-server/index.js         static + listen; runs only when executed (`import.meta.main`)
-server/store.js         the in-memory list
-server/*.test.js        API contract, static mount, spawned entry point
+server/app.ts           Hono routes — importable, never listens
+server/index.ts         static + listen; runs only when executed (`import.meta.main`)
+server/store.ts         the in-memory list
+server/*.test.ts        API contract, static mount, spawned entry point
+tsconfig.server.json    separate tsc project: node types, no DOM
 .github/workflows/ci.yml  the gate
 ```
 
@@ -147,7 +148,7 @@ server/*.test.js        API contract, static mount, spawned entry point
 ## Reference
 
 - Load test and what it does/doesn't measure: `notes.md`.
-- `server/index.js` serves `dist/` only if it exists **at boot** — build before starting, or use
+- `server/index.ts` serves `dist/` only if it exists **at boot** — build before starting, or use
   `npm start`, which does both.
 - Development builds warn and double-invoke; production builds do neither. That is why `:5173`
   shows two `/api/items` requests and `:3000` shows one.
