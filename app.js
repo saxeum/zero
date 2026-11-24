@@ -28,12 +28,6 @@ function App() {
     document.title = `Items: ${items.length}`;
   }, [items]);
 
-  const _add = () => {
-    if (!draft.trim()) return;
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), text: draft }]);
-    setDraft("");
-  };
-
   const add = async () => {
     if (!draft.trim()) return;
     try {
