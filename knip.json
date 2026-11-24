@@ -1,4 +1,4 @@
 {
   "entry": ["scripts/*.mjs"],
-  "ignore": ["shared/generated/**"]
+  "ignoreDependencies": ["zod"]
 }

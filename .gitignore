@@ -3,3 +3,7 @@ node_modules/
 dist/
 .wrangler/
 coverage/
+
+# Generated, never committed — `npm ci` runs `prepare`, which builds them.
+shared/generated/
+worker-configuration.d.ts

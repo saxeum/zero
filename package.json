@@ -7,18 +7,19 @@
     "dev": "vite",
     "build": "vite build",
     "api": "wrangler dev --port 8787",
-    "check": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
+    "check": "npm run gen && tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
     "start": "npm run build && wrangler dev --port 8787",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "load": "autocannon -c 100 -d 10 http://127.0.0.1:8787/api/items",
     "knip": "knip",
-    "verify": "npm run check && npm run check:codegen && npm run build && npm run budget && npm test && npm run knip",
+    "verify": "npm run check && npm run build && npm run budget && npm test && npm run knip",
     "codegen": "orval",
-    "check:codegen": "npm run codegen && git diff --exit-code -- shared/generated",
     "budget": "node scripts/bundle-budget.mjs",
     "deploy": "npm run build && wrangler deploy",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "gen": "npm run codegen && npm run types",
+    "prepare": "npm run gen"
   },
   "dependencies": {
     "hono": "^4.13.21",

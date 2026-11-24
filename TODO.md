@@ -139,9 +139,8 @@ against a real local D1, open access, custom domain, manual deploys, seeds from 
   thin wrapper over a binding, so there is nothing to cache.
 - **The server process disappeared.** `server/worker.ts` is `export default app` — no `serve()`,
   no port, no `serveStatic`. Static files come from the `assets` binding in `wrangler.jsonc`.
-- **`wrangler types` generates `worker-configuration.d.ts`** (638 kB, committed) from
-  `wrangler.jsonc`, so `Env` carries `DB` and `ASSETS` without a second declaration. Rerun it when
-  the config changes.
+- **`wrangler types` generates `worker-configuration.d.ts`** from `wrangler.jsonc`, so `Env`
+  carries `DB` and `ASSETS` without a second declaration.
 - **Tests moved into workerd.** `node --test` → `vitest` with `@cloudflare/vitest-plugin` (the
   successor to the deprecated `@cloudflare/vitest-pool-workers`). 21 tests, and `test-setup.ts`
   applies the migrations — the test database is built from the same SQL as production.
@@ -168,8 +167,13 @@ static-serving tests (assets are the binding's job, verified against the live UR
 - [ ] No gate looks at the deployed Worker. The live URL was verified by hand — assets, D1, POST,
       DELETE, a browser round trip — and a smoke test against `zero.foonix.net` after deploy would
       catch a bad binding or a missing migration.
-- [ ] `worker-configuration.d.ts` is generated and committed, and nothing checks it is current.
-      `wrangler types` has no `--check`; regenerating it inside `verify` is the fix.
+- [x] **Generated output is not committed.** `shared/generated/` and `worker-configuration.d.ts`
+      are gitignored, and `prepare` rebuilds them on `npm ci` (verified: a clean `npm ci` in a
+      throwaway package does run `prepare`). `npm run check` starts with `npm run gen`, so a
+      missing file is regenerated rather than reported as a type error.
+      The consequence: `check:codegen` is gone, because with no committed copy there is nothing to
+      drift from — the spec is compiled on every install. `knip` needs `ignoreDependencies: ["zod"]`
+      as a result: zod is only imported by generated code that knip cannot see.
 
 ## Gates
 
