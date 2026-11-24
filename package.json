@@ -13,9 +13,10 @@
     "coverage": "node --test --experimental-test-coverage server/ shared/",
     "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items",
     "knip": "knip",
-    "verify": "npm run check && npm run check:codegen && npm run build && npm test && npm run knip",
+    "verify": "npm run check && npm run check:codegen && npm run build && npm run budget && npm test && npm run knip",
     "codegen": "orval",
-    "check:codegen": "npm run codegen && git diff --exit-code -- shared/generated"
+    "check:codegen": "npm run codegen && git diff --exit-code -- shared/generated",
+    "budget": "node scripts/bundle-budget.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
