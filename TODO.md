@@ -175,6 +175,19 @@ static-serving tests (assets are the binding's job, verified against the live UR
       drift from — the spec is compiled on every install. `knip` needs `ignoreDependencies: ["zod"]`
       as a result: zod is only imported by generated code that knip cannot see.
 
+## Review
+
+A full read of the code with grades and evidence is in `docs/code-review.md` (reviewed object
+`2532dd2`). The five things it recommends are tracked, not repeated here:
+
+| | |
+|---|---|
+| #15 | cap item size — 1 MB items were accepted against production |
+| #16 | security headers and a CSP |
+| #17 | eslint with `react-hooks`, since no gate enforces hook rules |
+| #18 | paginate `GET /api/items` |
+| #19 | deploy from GitHub Actions with a scoped Cloudflare token |
+
 ## Gates
 
 ```sh
