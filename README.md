@@ -41,7 +41,7 @@ npm run dev   # :5173, Vite with HMR, proxying /api to :3000
 | `npm test` | `node --test` — API, client guards, entry point |
 | `npm run coverage` | tests plus Node's built-in coverage report |
 | `npm run knip` | dead code and unused exports |
-| `npm run verify` | `check` + `test` + `knip`, the gate CI runs |
+| `npm run verify` | `check` + `build` + `test` + `knip`, the gate CI runs |
 | `npm run load` | `autocannon` against `/api/items` |
 
 ## Layout

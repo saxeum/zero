@@ -13,7 +13,7 @@
     "coverage": "node --test --experimental-test-coverage server/",
     "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items",
     "knip": "knip",
-    "verify": "npm run check && npm test && npm run knip"
+    "verify": "npm run check && npm run build && npm test && npm run knip"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
