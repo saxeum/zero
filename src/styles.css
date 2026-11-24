@@ -8,6 +8,7 @@
 
 body {
   margin: 1.5rem;
+  max-width: 36rem;
   background: #111;
   color: #ddd;
   font: 16px/1.5 system-ui, sans-serif;
@@ -60,5 +61,16 @@ li {
 }
 
 li button {
+  margin-left: auto;
   padding: 0.25rem 0.5rem;
+  background: none;
+  border: 0;
+  color: #666;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+li button:hover {
+  background: none;
+  color: #f66;
 }

@@ -74,7 +74,12 @@ export function App() {
         {items.map((row) => (
           <li key={row.id}>
             {row.text}
-            <button onClick={() => remove(row.id)}>x</button>
+            <button
+              aria-label={`remove ${row.text}`}
+              onClick={() => remove(row.id)}
+            >
+              ×
+            </button>
           </li>
         ))}
       </ul>
