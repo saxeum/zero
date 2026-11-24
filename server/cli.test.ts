@@ -7,7 +7,7 @@ const entry = fileURLToPath(new URL("./index.ts", import.meta.url));
 
 test("the entry point starts a server and reports its port", async () => {
   const child = spawn(process.execPath, [entry], {
-    env: { ...process.env, PORT: "0" },
+    env: { ...process.env, PORT: "0", ZERO_DB: ":memory:" },
     stdio: ["ignore", "pipe", "pipe"],
   });
 

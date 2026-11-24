@@ -6,7 +6,6 @@ import { join } from "node:path";
 import { once } from "node:events";
 import type { ServerType } from "@hono/node-server";
 import { createServer } from "./index.ts";
-import { reset } from "./store.ts";
 
 const root = mkdtempSync(join(tmpdir(), "zero-dist-"));
 writeFileSync(join(root, "index.html"), '<!doctype html><div id="root"></div>');
@@ -15,8 +14,7 @@ let server: ServerType;
 let base: string;
 
 before(async () => {
-  reset();
-  server = createServer(0, root);
+  server = createServer({ port: 0, root, dbPath: ":memory:" });
   await once(server, "listening");
   const address = server.address();
   assert.ok(address !== null && typeof address === "object");

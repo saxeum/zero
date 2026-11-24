@@ -12,7 +12,8 @@ time. `TODO.md` is the ladder, including what was deliberately skipped and why.
 - Client: React 18 + TypeScript, built by Vite
 - Server: Hono on Node, written in TypeScript and run directly (Node strips types)
 - Shared: zod schemas in `shared/`, imported by both sides
-- No database. An in-memory array in `server/store.ts` — items vanish when the process restarts.
+- Persistence: `node:sqlite` (built into Node, no ORM, no dependency). The database is
+  `data/items.db`, seeded once on first creation. `ZERO_DB=:memory:` overrides the path.
 
 ## Running it
 
@@ -55,7 +56,7 @@ src/useItems.ts       the data hook: fetch, add, remove, both error slots
 shared/item.ts        zod schemas, runtime checks at both boundaries
 server/app.ts         Hono routes — importable, never listens
 server/index.ts       static serving and listen; runs only when executed
-server/store.ts       the in-memory list
+server/store.ts       SQLite via node:sqlite: createStore(file) → list/add/remove/close
 ```
 
 ## API
