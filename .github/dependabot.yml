@@ -11,3 +11,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # react and react-dom, and their types, must move together: @types/react-dom
+      # declares a peer dependency on @types/react. Splitting them produces an
+      # install (ERESOLVE) rather than an upgrade.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
