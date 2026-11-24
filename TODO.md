@@ -124,9 +124,14 @@ its hand-written validator had, solved one level up.
 npm run verify
 ```
 
-`npm run check` (tsc ×2) → `npm run build` → `npm test` (26) → `npm run knip`. Stops
-at the first failure, ~2s warm. CI runs the same list plus `npm ci --dry-run`, on every push to
-`main` and every PR, as the required check `test`.
+`npm run check` (tsc ×2) → `npm run check:codegen` → `npm run build` → `npm test` (26) →
+`npm run knip`. Stops at the first failure, ~2s warm.
+
+CI runs `npm ci --dry-run`, then **`npm run verify` as a single step** — not the individual
+commands. That is deliberate: when CI listed its own copy of the steps, it kept passing while
+`verify` grew a `check:codegen`, so spec drift was invisible to the required check. One command in
+both places makes that impossible. Plus `test -f dist/index.html`, which is about the artefact
+rather than the code.
 
 Coverage: `npm run coverage`. Note it only sees modules the test process loaded — `index.ts` was
 invisible until it became importable, and the spawned entry-point test contributes 0% because it
