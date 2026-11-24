@@ -1,95 +1,83 @@
-import { after, beforeEach, test } from "node:test";
-import assert from "node:assert/strict";
-import { createApp } from "./app.ts";
-import { createStore, type Store } from "./store.ts";
+import { SELF } from "cloudflare:test";
+import { describe, expect, test } from "vitest";
 import type { Item } from "../shared/generated/models.ts";
 
-let app: ReturnType<typeof createApp>;
-let store: Store;
-
-// A fresh :memory: database per test — no reset endpoint, no shared state.
-beforeEach(() => {
-  store = createStore(":memory:");
-  app = createApp(store);
-});
-
-after(() => store.close());
-
+// SELF.fetch goes through the real worker: routing, bindings, D1, the lot.
+const get = () => SELF.fetch("http://zero.test/api/items");
 const post = (body: string) =>
-  app.request("/api/items", {
+  SELF.fetch("http://zero.test/api/items", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
   });
+const del = (id: string) => SELF.fetch(`http://zero.test/api/items/${id}`, { method: "DELETE" });
 
-const getItems = async (): Promise<Item[]> =>
-  (await (await app.request("/api/items")).json()) as Item[];
+const items = async (): Promise<Item[]> => (await (await get()).json()) as Item[];
 
-test("GET returns the seeded items in insertion order", async () => {
-  const res = await app.request("/api/items");
+describe("GET /api/items", () => {
+  test("returns the seeded items in insertion order", async () => {
+    const res = await get();
 
-  assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), [
-    { id: "seed-1", text: "learn useEffect" },
-    { id: "seed-2", text: "fetch from the server" },
-  ]);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual([
+      { id: "seed-1", text: "learn useEffect" },
+      { id: "seed-2", text: "fetch from the server" },
+    ]);
+  });
 });
 
-test("POST creates an item, trims it, and it is listed after", async () => {
-  const res = await post(JSON.stringify({ text: "  buy milk  " }));
+describe("POST /api/items", () => {
+  test("creates an item, trims it, and lists it afterwards", async () => {
+    const res = await post(JSON.stringify({ text: "  buy milk  " }));
 
-  assert.equal(res.status, 201);
-  const created = (await res.json()) as Item;
-  assert.equal(created.text, "buy milk");
-  assert.equal(typeof created.id, "string");
-  assert.ok(created.id.length > 0);
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as Item;
+    expect(created.text).toBe("buy milk");
+    expect(created.id.length).toBeGreaterThan(0);
 
-  const all = await getItems();
-  assert.equal(all.length, 3);
-  assert.deepEqual(all.at(-1), created);
+    const all = await items();
+    expect(all).toHaveLength(3);
+    expect(all.at(-1)).toEqual(created);
+  });
+
+  test("rejects blank text", async () => {
+    expect((await post(JSON.stringify({ text: "   " }))).status).toBe(400);
+    expect(await items()).toHaveLength(2);
+  });
+
+  test("rejects a missing text field", async () => {
+    expect((await post(JSON.stringify({}))).status).toBe(400);
+  });
+
+  test("rejects a non-string text field", async () => {
+    expect((await post(JSON.stringify({ text: 42 }))).status).toBe(400);
+  });
+
+  test("rejects unknown fields instead of dropping them", async () => {
+    const res = await post(JSON.stringify({ text: "milk", id: "chosen-by-client" }));
+
+    expect(res.status).toBe(400);
+    expect(await items()).toHaveLength(2);
+  });
+
+  test("rejects invalid JSON with 400, not 500", async () => {
+    expect((await post("not json")).status).toBe(400);
+  });
 });
 
-test("POST rejects blank text", async () => {
-  const res = await post(JSON.stringify({ text: "   " }));
+describe("DELETE /api/items/:id", () => {
+  test("removes the item and returns 204", async () => {
+    expect((await del("seed-1")).status).toBe(204);
+    expect((await items()).map((item) => item.id)).toEqual(["seed-2"]);
+  });
 
-  assert.equal(res.status, 400);
-  assert.equal((await getItems()).length, 2);
-});
+  test("returns 404 for an unknown id", async () => {
+    expect((await del("nope")).status).toBe(404);
+  });
 
-test("POST rejects a missing text field", async () => {
-  assert.equal((await post(JSON.stringify({}))).status, 400);
-});
-
-test("POST rejects a non-string text field", async () => {
-  assert.equal((await post(JSON.stringify({ text: 42 }))).status, 400);
-});
-
-test("POST rejects unknown fields instead of dropping them", async () => {
-  const res = await post(JSON.stringify({ text: "milk", id: "chosen-by-client" }));
-
-  assert.equal(res.status, 400);
-  assert.equal((await getItems()).length, 2);
-});
-
-test("POST rejects invalid JSON with 400, not 500", async () => {
-  assert.equal((await post("not json")).status, 400);
-});
-
-test("DELETE removes the item and returns 204", async () => {
-  const res = await app.request("/api/items/seed-1", { method: "DELETE" });
-
-  assert.equal(res.status, 204);
-  assert.deepEqual(
-    (await getItems()).map((item) => item.id),
-    ["seed-2"],
-  );
-});
-
-test("DELETE on an unknown id returns 404", async () => {
-  assert.equal((await app.request("/api/items/nope", { method: "DELETE" })).status, 404);
-});
-
-test("DELETE is not idempotent in status: the second call is 404", async () => {
-  assert.equal((await app.request("/api/items/seed-1", { method: "DELETE" })).status, 204);
-  assert.equal((await app.request("/api/items/seed-1", { method: "DELETE" })).status, 404);
+  test("is not idempotent in status: the second call is 404", async () => {
+    expect((await del("seed-1")).status).toBe(204);
+    expect((await del("seed-1")).status).toBe(404);
+  });
 });

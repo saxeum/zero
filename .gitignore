@@ -1,4 +1,5 @@
 node_modules/
 .ruff_cache/
 dist/
-data/
+.wrangler/
+coverage/
