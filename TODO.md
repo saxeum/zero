@@ -169,9 +169,13 @@ static-serving tests (assets are the binding's job, verified against the live UR
 - [ ] **Migrations run before the Worker, so they must stay additive.** Documented in the workflow
       and the README; a destructive change needs two deploys (expand, then contract). Nothing
       enforces that yet — a reviewer does, which is why it is written down.
-- [ ] No gate looks at the deployed Worker. The live URL was verified by hand — assets, D1, POST,
-      DELETE, a browser round trip — and a smoke test against `zero.foonix.net` after deploy would
-      catch a bad binding or a missing migration.
+- [x] **A gate looks at the deployed Worker.** `npm run smoke -- <url>` checks `/`, the API shape,
+      a POST→DELETE round trip, unknown-field rejection and 404s, and runs as the last step of the
+      deploy workflow. It creates one item and deletes it. Proved it fails: against a closed port
+      (8/8 fail, exit 1) and against `example.com` (exit 1).
+- [ ] A red smoke test does not roll back. Production is already updated when it runs, so the next
+      question is whether the deploy job should call `wrangler rollback` on failure — or whether
+      that is more dangerous than leaving it and looking.
 - [x] **Generated output is not committed.** `shared/generated/` and `worker-configuration.d.ts`
       are gitignored, and `prepare` rebuilds them on `npm ci` (verified: a clean `npm ci` in a
       throwaway package does run `prepare`). `npm run check` starts with `npm run gen`, so a
