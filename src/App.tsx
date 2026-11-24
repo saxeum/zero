@@ -63,14 +63,25 @@ export function App() {
   if (error) return <p>Failed: {error}</p>;
 
   return (
-    <div>
-      <input value={draft} onChange={(event) => setDraft(event.target.value)} />
-      <button onClick={add}>Add</button>
-      <ul>
+    <div className="app">
+      <h1 className="title">items</h1>
+      <div className="row">
+        <input
+          className="input"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <button className="add" onClick={add}>
+          Add
+        </button>
+      </div>
+      <ul className="list">
         {items.map((row) => (
-          <li key={row.id}>
-            {row.text}
-            <button onClick={() => remove(row.id)}>x</button>
+          <li className="item" key={row.id}>
+            <span>{row.text}</span>
+            <button className="remove" onClick={() => remove(row.id)}>
+              ×
+            </button>
           </li>
         ))}
       </ul>
