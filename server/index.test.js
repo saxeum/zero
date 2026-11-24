@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { once } from "node:events";
 import { createServer } from "./index.js";
 import { reset } from "./store.js";
 
@@ -15,7 +16,7 @@ let base;
 before(async () => {
   reset();
   server = createServer(0, root);
-  await new Promise((resolve) => server.once("listening", resolve));
+  await once(server, "listening");
   base = `http://127.0.0.1:${server.address().port}`;
 });
 
