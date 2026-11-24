@@ -1,66 +1,20 @@
-import { useEffect, useState } from "react";
-
-type Item = { id: string; text: string };
+import { useEffect, useState, type FormEvent } from "react";
+import { useItems } from "./useItems";
 
 export function App() {
-  const [items, setItems] = useState<Item[]>([]);
+  const { items, loading, loadError, actionError, add, remove } = useItems();
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function load() {
-      try {
-        const res = await fetch("/api/items", { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setItems(await res.json());
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setLoadError(err instanceof Error ? err.message : String(err));
-      }
-      setLoading(false);
-    }
-
-    load();
-
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     document.title = `Items: ${items.length}`;
   }, [items]);
 
-  const add = async () => {
-    if (!draft.trim()) return;
-    setActionError(null);
-    try {
-      const res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const item: Item = await res.json();
-      setItems((prev) => [...prev, item]);
-      setDraft("");
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  const remove = async (id: string) => {
-    setActionError(null);
-    try {
-      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setItems((prev) => prev.filter((x) => x.id !== id));
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    }
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    if (await add(text)) setDraft("");
   };
 
   const needle = query.trim().toLowerCase();
@@ -74,12 +28,7 @@ export function App() {
   return (
     <div>
       <h1>items</h1>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          add();
-        }}
-      >
+      <form onSubmit={submit}>
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}

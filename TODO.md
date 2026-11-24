@@ -78,12 +78,16 @@ Two sources of truth is one bug; one error state for two kinds of failure is ano
 
 ## Rung 6 — Custom hooks, then tests
 
-- [ ] `useItems()` returning `{ items, loading, error, add, remove }` — a hook is a function that
-      calls hooks, nothing more
-- [ ] `node:test` against the Hono app via `app.request("/api/items")` — no browser, no new deps
-- [ ] Cover the gates that already exist: 201, 400 on blank text, 400 on bad JSON, 204, 404 on a
-      second delete
-- [ ] Browser-level tests only if a bug needs them
+- [x] `useItems()` returning `{ items, loading, loadError, actionError, add, remove }` — a hook is a
+      function that calls hooks, nothing more. `add()` returns a boolean so the component decides
+      whether to clear its own input; the hook never touches `draft`
+- [x] `node:test` against the Hono app via `app.request("/api/items")` — no browser, no new deps
+- [x] Cover the gates that already exist: 201, 400 on blank text, 400 on bad JSON, 204, 404 on a
+      second delete — 8 tests, `npm test`; proved they fail by changing 201 to 200
+- [x] `npm run coverage` — node's built-in reporter, 100% of `app.js` + `store.js`
+- [ ] `server/index.js` is still untested and *invisible* to coverage: a live test on `port: 0`
+      is the only thing that covers the `dist` mount
+- [ ] `useReducer` when several `useState`s always change together; not yet
 
 ## Skip until absence hurts
 
