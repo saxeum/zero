@@ -65,10 +65,70 @@ call.
 - [ ] Compare against the hand-written version in git history — the transform is visible in
       reverse
 
+## Rung 5 — State design, and where errors live
+
+Two sources of truth is one bug; one error state for two kinds of failure is another.
+
+- [x] Load failure guards the app; action failure is a banner with the list still live
+- [x] Every action clears the previous error first, so the banner can't describe a stale failure
+- [x] The filter is derived during render — `query` is state, the filtered list is not
+- [x] No effect anywhere to keep two values in sync
+- [x] A failed add keeps the draft text, so the work isn't lost
+- [ ] Notice when this needs `useReducer` (several fields always changing together)
+
+## Rung 6 — Custom hooks, then tests
+
+- [x] `useItems()` returning `{ items, loading, loadError, actionError, add, remove }` — a hook is a
+      function that calls hooks, nothing more. `add()` returns a boolean so the component decides
+      whether to clear its own input; the hook never touches `draft`
+- [x] `node:test` against the Hono app via `app.request("/api/items")` — no browser, no new deps
+- [x] Cover the gates that already exist: 201, 400 on blank text, 400 on bad JSON, 204, 404 on a
+      second delete — 8 tests, `npm test`; proved they fail by changing 201 to 200
+- [x] `npm run coverage` — node's built-in reporter, 100% of `app.js` + `store.js`
+- [x] `server/index.js` now covered in-process: `createServer(0, root)` on an ephemeral port, plus a
+      spawned-process test for the `import.meta.main` entry point. Coverage does **not** cross that
+      process boundary — the spawned child's lines are executed but invisible to the report
+- [ ] Branch: "no `dist`" (API-only dev mode) is still untested; needs a *separate* process, since
+      the static mount is a module-level flag
+- [ ] `useReducer` when several `useState`s always change together; not yet
+
+## Rung 7 — The boundary
+
+The compiler believes `res.json()`. Types stop at the network edge; validation doesn't.
+
+- [x] `parseItem` / `parseItems` check the shape at runtime and throw, so bad data lands in the
+      existing error path instead of becoming state — shown by making the server return `{id: 1}`
+- [x] Client-side guards are unit-tested with `node --test`; Node 26 strips types, so a `.ts` file
+      runs with no build and no browser
+- [ ] The server still validates nothing but `text` on POST — extra or wrong-typed fields are
+      silently dropped by the handler, not rejected
+- [x] Hand-rolled guards replaced by `zod/mini`: the type is now `z.infer<typeof ItemSchema>`, so
+      schema and type can't drift. Cost measured: +13 kB raw / **+4.8 kB gzip** on the client
+      bundle (`zod` full was +78 kB / +22.8 kB gzip — that's the version to avoid here)
+- [ ] The server is still plain JS with no shared schema. Half the value waits on the server being
+      TS and importing the same `ItemSchema` for request validation
+- [ ] Re-run `npm run load` after a validation change: this is the first change that puts real
+      work on the request path, so the benchmark finally has something to measure
+
 ## Skip until absence hurts
 
 `useReducer`, context, `useMemo` / `useCallback`, refs beyond debugging, portals, error
 boundaries, Suspense. Each solves a problem not yet present.
+
+## Gates
+
+One command, three checks, and it can fail:
+
+```sh
+npm run verify
+```
+
+which is `npm run check` (tsc + `node --check`) → `npm test` (16 tests) → `npm run knip` (dead code).
+The chain stops at the first failure. ~1s on a warm tree.
+
+There is no CI yet — no remote is configured. Until there is, this command *is* the check, so it
+belongs in the acceptance block of whatever ticket you are working on. Nothing else will remember
+to run it.
 
 ## Habit
 

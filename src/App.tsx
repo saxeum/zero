@@ -1,84 +1,56 @@
-import { useEffect, useState } from "react";
-
-type Item = { id: string; text: string };
+import { useEffect, useState, type FormEvent } from "react";
+import { useItems } from "./useItems";
 
 export function App() {
-  const [items, setItems] = useState<Item[]>([]);
+  const { items, loading, loadError, actionError, add, remove } = useItems();
   const [draft, setDraft] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function load() {
-      try {
-        const res = await fetch("/api/items", { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setItems(await res.json());
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : String(err));
-      }
-      setLoading(false);
-    }
-
-    load();
-
-    return () => controller.abort();
-  }, []);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     document.title = `Items: ${items.length}`;
   }, [items]);
 
-  const add = async () => {
-    if (!draft.trim()) return;
-    try {
-      const res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const item: Item = await res.json();
-      setItems((prev) => [...prev, item]);
-      setDraft("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    if (await add(text)) setDraft("");
   };
 
-  const remove = async (id: string) => {
-    try {
-      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setItems((prev) => prev.filter((x) => x.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
+  const needle = query.trim().toLowerCase();
+  const visible = needle
+    ? items.filter((item) => item.text.toLowerCase().includes(needle))
+    : items;
 
   if (loading) return <p>Loading…</p>;
-  if (error) return <p>Failed: {error}</p>;
+  if (loadError) return <p>Failed to load: {loadError}</p>;
 
   return (
     <div>
       <h1>items</h1>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          add();
-        }}
-      >
+      <form onSubmit={submit}>
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
         />
         <button type="submit">Add</button>
       </form>
+      {actionError && (
+        <p className="error" role="alert">
+          {actionError}
+        </p>
+      )}
+      <input
+        className="filter"
+        aria-label="filter items"
+        placeholder="filter"
+        spellCheck={false}
+        autoComplete="off"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
       <ul>
-        {items.map((row) => (
+        {visible.map((row) => (
           <li key={row.id}>
             {row.text}
             <button
@@ -90,6 +62,7 @@ export function App() {
           </li>
         ))}
       </ul>
+      {needle && visible.length === 0 && <p className="muted">no matches</p>}
     </div>
   );
 }

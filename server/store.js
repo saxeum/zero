@@ -1,7 +1,9 @@
-const items = [
+const seed = [
   { id: "seed-1", text: "learn useEffect" },
   { id: "seed-2", text: "fetch from the server" },
 ];
+
+let items = [...seed];
 
 export function list() {
   return items;
@@ -18,4 +20,8 @@ export function remove(id) {
   if (index === -1) return false;
   items.splice(index, 1);
   return true;
+}
+
+export function reset(next = seed) {
+  items = [...next];
 }
