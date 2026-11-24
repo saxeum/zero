@@ -46,7 +46,10 @@ export function createStore(file: string): Store {
   const deleteOne = db.prepare("DELETE FROM items WHERE id = ?");
 
   return {
-    list: () => selectAll.all() as Item[],
+    // Rows come back as null-prototype objects (`row.hasOwnProperty` throws, and
+    // deepStrictEqual fails against a plain object). The store owns the driver, so
+    // callers get plain items.
+    list: () => (selectAll.all() as Item[]).map((row) => ({ id: row.id, text: row.text })),
 
     add(text) {
       const item: Item = { id: crypto.randomUUID(), text };

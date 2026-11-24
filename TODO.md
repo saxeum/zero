@@ -104,7 +104,7 @@ the socket loop. Numbers and conditions are in `notes.md`.
 npm run verify
 ```
 
-`npm run check` (tsc + `node --check`) → `npm run build` → `npm test` (16) → `npm run knip`. Stops
+`npm run check` (tsc ×2) → `npm run build` → `npm test` (25) → `npm run knip`. Stops
 at the first failure, ~2s warm. CI runs the same list plus `npm ci --dry-run`, on every push to
 `main` and every PR, as the required check `test`.
 

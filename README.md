@@ -40,7 +40,7 @@ npm run dev   # :5173, Vite with HMR, proxying /api to :3000
 | `npm run build` | build the client into `dist/` |
 | `npm start` | build, then serve client and API on :3000 |
 | `npm run check` | `tsc` for the client and, separately, for the server |
-| `npm test` | `node --test` — 18 tests: API, shared guards, entry point |
+| `npm test` | `node --test` — 25 tests: API, store, shared guards, entry point |
 | `npm run coverage` | tests plus Node's built-in coverage report |
 | `npm run knip` | dead code and unused exports |
 | `npm run verify` | `check` + `build` + `test` + `knip`, the gate CI runs |
