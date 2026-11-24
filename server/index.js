@@ -3,9 +3,20 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { existsSync } from "node:fs";
 import { app } from "./app.js";
 
-// Production only: the built client. In dev, Vite serves it and proxies /api here.
-if (existsSync("./dist")) app.use("/*", serveStatic({ root: "./dist" }));
+let staticMounted = false;
 
-serve({ fetch: app.fetch, port: 3000 }, (info) => {
-  console.log(`listening on http://localhost:${info.port}`);
-});
+/**
+ * Starts the HTTP server. `root` is the directory of built client assets; when it
+ * doesn't exist the server is API-only, which is what dev mode wants.
+ */
+export function createServer(port = Number(process.env.PORT ?? 3000), root = "./dist") {
+  if (!staticMounted && existsSync(root)) {
+    app.use("/*", serveStatic({ root }));
+    staticMounted = true;
+  }
+  return serve({ fetch: app.fetch, port }, (info) => {
+    console.log(`listening on http://localhost:${info.port}`);
+  });
+}
+
+if (import.meta.main) createServer();

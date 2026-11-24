@@ -85,8 +85,11 @@ Two sources of truth is one bug; one error state for two kinds of failure is ano
 - [x] Cover the gates that already exist: 201, 400 on blank text, 400 on bad JSON, 204, 404 on a
       second delete — 8 tests, `npm test`; proved they fail by changing 201 to 200
 - [x] `npm run coverage` — node's built-in reporter, 100% of `app.js` + `store.js`
-- [ ] `server/index.js` is still untested and *invisible* to coverage: a live test on `port: 0`
-      is the only thing that covers the `dist` mount
+- [x] `server/index.js` now covered in-process: `createServer(0, root)` on an ephemeral port, plus a
+      spawned-process test for the `import.meta.main` entry point. Coverage does **not** cross that
+      process boundary — the spawned child's lines are executed but invisible to the report
+- [ ] Branch: "no `dist`" (API-only dev mode) is still untested; needs a *separate* process, since
+      the static mount is a module-level flag
 - [ ] `useReducer` when several `useState`s always change together; not yet
 
 ## Skip until absence hurts
