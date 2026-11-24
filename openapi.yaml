@@ -1,0 +1,99 @@
+openapi: 3.1.0
+
+info:
+  title: zero
+  version: 1.0.0
+  description: |
+    Todo list API.
+
+    This file is the source of truth. `shared/generated/` is produced from it by `npm run codegen`,
+    and `npm run verify` fails if the two disagree. Edit the spec, regenerate, then write code
+    against the output — never the other way round.
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /api/items:
+    get:
+      operationId: listItems
+      summary: List every item, in insertion order
+      responses:
+        "200":
+          description: The full list
+          headers:
+            Cache-Control:
+              description: Always no-store; the list is read from SQLite per request
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+
+    post:
+      operationId: createItem
+      summary: Create an item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewItem"
+      responses:
+        "201":
+          description: The item as stored, including its server-generated id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          description: Blank text, a wrong type, an unknown field, or malformed JSON
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/items/{id}:
+    delete:
+      operationId: deleteItem
+      summary: Delete an item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: No item with that id
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    Item:
+      type: object
+      additionalProperties: false
+      required: [id, text]
+      properties:
+        id:
+          type: string
+          description: Assigned by the server
+        text:
+          type: string
+
+    NewItem:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: Trimmed; must not be blank

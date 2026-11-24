@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Store } from "./store.ts";
-import { parseNewItem } from "../shared/item.ts";
+import { CreateItemBody } from "../shared/generated/api.ts";
 
 export function createApp(store: Store) {
   const app = new Hono();
@@ -12,7 +12,7 @@ export function createApp(store: Store) {
 
     let text: string;
     try {
-      text = parseNewItem(body).text.trim();
+      text = CreateItemBody.parse(body).text.trim();
     } catch {
       return c.text("invalid body\n", 400);
     }

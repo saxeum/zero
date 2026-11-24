@@ -11,7 +11,9 @@ time. `TODO.md` is the ladder, including what was deliberately skipped and why.
 
 - Client: React 18 + TypeScript, built by Vite
 - Server: Hono on Node, written in TypeScript and run directly (Node strips types)
-- Shared: zod schemas in `shared/`, imported by both sides
+- Contract: **`openapi.yaml` is the source of truth.** `npm run codegen` (orval) generates the
+  TypeScript types and zod validators in `shared/generated/`, imported directly by both sides —
+  `npm run verify` fails if the spec and the generated output disagree
 - Persistence: `node:sqlite` (built into Node, no ORM, no dependency). The database is
   `data/items.db`, seeded once on first creation. `ZERO_DB=:memory:` overrides the path.
 
@@ -40,10 +42,12 @@ npm run dev   # :5173, Vite with HMR, proxying /api to :3000
 | `npm run build` | build the client into `dist/` |
 | `npm start` | build, then serve client and API on :3000 |
 | `npm run check` | `tsc` for the client and, separately, for the server |
-| `npm test` | `node --test` — 25 tests: API, store, shared guards, entry point |
+| `npm run codegen` | regenerate `shared/generated/` from `openapi.yaml` |
+| `npm run check:codegen` | regenerate, then fail if that changed anything |
+| `npm test` | `node --test` — 26 tests: API, store, shared guards, entry point |
 | `npm run coverage` | tests plus Node's built-in coverage report |
 | `npm run knip` | dead code and unused exports |
-| `npm run verify` | `check` + `build` + `test` + `knip`, the gate CI runs |
+| `npm run verify` | `check` → `check:codegen` → `build` → `test` → `knip`, the gate CI runs |
 | `npm run load` | `autocannon` against `/api/items` |
 
 ## Layout
@@ -53,7 +57,10 @@ index.html            Vite entry
 src/main.tsx          createRoot + StrictMode
 src/App.tsx           layout: form, filter, list
 src/useItems.ts       the data hook: fetch, add, remove, both error slots
-shared/item.ts        zod schemas, runtime checks at both boundaries
+openapi.yaml          the API contract — edit this first, then regenerate
+orval.config.ts       codegen config: zod client, strict objects
+shared/generated/     generated types + zod validators (committed, do not edit)
+shared/contract.test.ts  the response validators, exercised directly
 server/app.ts         Hono routes — importable, never listens
 server/index.ts       static serving and listen; runs only when executed
 server/store.ts       SQLite via node:sqlite: createStore(file) → list/add/remove/close
@@ -61,11 +68,9 @@ server/store.ts       SQLite via node:sqlite: createStore(file) → list/add/rem
 
 ## API
 
-| | | |
-|---|---|---|
-| `GET /api/items` | 200 | the full list |
-| `POST /api/items` | 201 / 400 | body `{ "text": "..." }`; blank, wrong-typed or **unknown** fields rejected |
-| `DELETE /api/items/:id` | 204 / 404 | 404 on a second delete |
+Three endpoints — `GET /api/items`, `POST /api/items`, `DELETE /api/items/{id}` — described in
+`openapi.yaml`, which is authoritative. Deliberately not repeated here: a second description of
+the API is the drift this project spent a rung removing.
 
 ## Notes
 

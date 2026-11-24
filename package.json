@@ -13,7 +13,9 @@
     "coverage": "node --test --experimental-test-coverage server/ shared/",
     "load": "autocannon -c 100 -d 10 http://localhost:3000/api/items",
     "knip": "knip",
-    "verify": "npm run check && npm run build && npm test && npm run knip"
+    "verify": "npm run check && npm run check:codegen && npm run build && npm test && npm run knip",
+    "codegen": "orval",
+    "check:codegen": "npm run codegen && git diff --exit-code -- shared/generated"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
@@ -29,6 +31,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "autocannon": "^9.0.0",
     "knip": "^6.48.0",
+    "orval": "^8.49.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"
   }
