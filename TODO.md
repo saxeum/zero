@@ -97,6 +97,10 @@ the socket loop. Numbers and conditions are in `notes.md`.
   Decide once: accept it, or recreate early.
 - This file and `README.md` are the two documents that go stale first. Correct them in the same PR
   as the change that falsifies them.
+- **[decision, not a task]** Every commit is authored `pi <pi@local>` and links to no GitHub
+  account. Force-push on `main` is blocked, so rewriting the history now means deleting and
+  recreating the repository. Two options: accept it forever, or recreate now while the repo is a
+  day old.
 
 ## Rung 8 — Spec first
 
@@ -113,10 +117,9 @@ its hand-written validator had, solved one level up.
 - [x] Full `zod` on the client (+18 kB gzip), chosen deliberately over hand-writing a second
       schema. Note `orval` can emit `variant: "mini"` — one config word — if the bundle matters
       more than the API surface later
-- [ ] `@hey-api/openapi-ts` is the more fashionable generator and **does not run on TypeScript 7**
-      (`ts.SyntaxKind` is undefined); orval 8 does. Worth re-checking each upgrade
-- [ ] Nothing measures the client bundle, so a dependency swap can add 20 kB unnoticed. That is
-      how the `zod/mini` → `zod` regression got in
+- [x] `npm run budget`: gzipped `dist/assets/*.js|css` against a 95 kB tripwire, in `verify`.
+      That is how the `zod/mini` → `zod` regression (46 → 91.8 kB gzip) got in unnoticed — it is
+      now a build failure, and raising the budget is a visible diff
 
 ## Gates
 
@@ -124,8 +127,8 @@ its hand-written validator had, solved one level up.
 npm run verify
 ```
 
-`npm run check` (tsc ×2) → `npm run check:codegen` → `npm run build` → `npm test` (26) →
-`npm run knip`. Stops at the first failure, ~2s warm.
+`npm run check` (tsc ×2) → `npm run check:codegen` → `npm run build` → `npm run budget` →
+`npm test` (26) → `npm run knip`. Stops at the first failure, ~3s warm.
 
 CI runs `npm ci --dry-run`, then **`npm run verify` as a single step** — not the individual
 commands. That is deliberate: when CI listed its own copy of the steps, it kept passing while
@@ -178,6 +181,10 @@ knip.json               ignore generated code
 ## Reference
 
 - Load test and what it does/doesn't measure: `notes.md`.
+- Codegen tooling, as of this writing: **orval 8 works**; `openapi-typescript` works (types only);
+  `@hey-api/openapi-ts` 0.99 **crashes on TypeScript 7** (`ts.SyntaxKind` undefined). Re-check on
+  every upgrade — the fashionable option is not the working one.
+- Client bundle, gzipped: 89.1 kB (React 19 + full zod + app). Budget: 95 kB.
 - `server/index.ts` serves `dist/` only if it exists **at boot** — build before starting, or use
   `npm start`, which does both.
 - Development builds warn and double-invoke; production builds do neither. That is why `:5173`

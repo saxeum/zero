@@ -46,8 +46,9 @@ npm run dev   # :5173, Vite with HMR, proxying /api to :3000
 | `npm run check:codegen` | regenerate, then fail if that changed anything |
 | `npm test` | `node --test` — 26 tests: API, store, shared guards, entry point |
 | `npm run coverage` | tests plus Node's built-in coverage report |
+| `npm run budget` | fail if the gzipped client exceeds 95 kB |
 | `npm run knip` | dead code and unused exports |
-| `npm run verify` | `check` → `check:codegen` → `build` → `test` → `knip`, the gate CI runs |
+| `npm run verify` | `check` → `check:codegen` → `build` → `budget` → `test` → `knip`, the gate CI runs |
 | `npm run load` | `autocannon` against `/api/items` |
 
 ## Layout
@@ -61,6 +62,7 @@ openapi.yaml          the API contract — edit this first, then regenerate
 orval.config.ts       codegen config: zod client, strict objects
 shared/generated/     generated types + zod validators (committed, do not edit)
 shared/contract.test.ts  the response validators, exercised directly
+scripts/bundle-budget.mjs  the gzipped-size tripwire
 server/app.ts         Hono routes — importable, never listens
 server/index.ts       static serving and listen; runs only when executed
 server/store.ts       SQLite via node:sqlite: createStore(file) → list/add/remove/close
