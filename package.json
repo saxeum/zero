@@ -9,7 +9,8 @@
     "api": "node server/index.js",
     "check": "tsc --noEmit && node --check server/index.js && node --check server/store.js",
     "start": "npm run build && npm run api",
-    "test": "node --test server/"
+    "test": "node --test server/",
+    "coverage": "node --test --experimental-test-coverage server/"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
