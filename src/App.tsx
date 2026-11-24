@@ -95,6 +95,8 @@ export function App() {
         className="filter"
         aria-label="filter items"
         placeholder="filter"
+        spellCheck={false}
+        autoComplete="off"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
