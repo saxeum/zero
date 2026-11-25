@@ -17,7 +17,7 @@ paths:
   /api/items:
     get:
       operationId: listItems
-      summary: List every item, in insertion order
+      summary: List every item belonging to the signed-in user, in insertion order
       responses:
         "401":
           description: No valid session cookie (Better Auth's /api/auth routes issue it)
@@ -41,7 +41,7 @@ paths:
 
     post:
       operationId: createItem
-      summary: Create an item
+      summary: Create an item owned by the signed-in user
       requestBody:
         required: true
         content:
@@ -68,7 +68,7 @@ paths:
   /api/items/{id}:
     delete:
       operationId: deleteItem
-      summary: Delete an item
+      summary: Delete one of the signed-in user's items
       parameters:
         - name: id
           in: path
@@ -79,7 +79,9 @@ paths:
         "204":
           description: Deleted
         "404":
-          description: No item with that id
+          description: |
+            No item with that id **for this user**. Another user's id answers 404 rather
+            than 403, because a 403 would confirm the row exists.
           content:
             text/plain:
               schema:

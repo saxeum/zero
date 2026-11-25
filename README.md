@@ -91,6 +91,32 @@ deploys: expand, then contract.
 `npm run deploy` still works from a laptop, and until the secret exists it is the only way to ship.
 That makes it the one documented exception to "nothing is applied outside the pipeline".
 
+## Auth and ownership
+
+**Better Auth** with the Drizzle/D1 adapter, mounted at `/api/auth/*` — the same arrangement as
+`~/soper/numbat`, so there is one auth mental model across the two projects.
+
+- `server/auth.ts` — `createAuth(env)`, built per request because Workers bindings are not
+  available at module scope. Google is a social provider, an **authorization-code flow with a
+  server-side exchange**, which is why `GOOGLE_CLIENT_SECRET` is genuinely needed here.
+- Sessions live in **D1** (`migrations/0003_auth.sql`), so they are revocable and carry ip/userAgent.
+- `requireSession` guards `/api/items/*` via `api.getSession({ headers })`.
+- Password sign-in is enabled **only when `ENVIRONMENT=development`**, so tests and local work
+  never need a browser round trip through Google. Production and preview never offer it.
+
+Ownership: every item belongs to the `sub` of the account that created it, all three queries filter
+on it, and `DELETE` is scoped the same way — another user's id is **404, not 403**, because a 403
+would confirm the row exists.
+
+`migrations/0004_owner.sql` is the **expand** half: old rows deleted, `owner` added nullable.
+Migrations run before the Worker deploys, so rows written by the previous Worker during that window
+have `owner IS NULL` and are invisible to every query. Tightening to `NOT NULL` is a separate
+migration, applied once this Worker is the one in production — SQLite cannot add a `NOT NULL` column
+without a default, and a made-up default is worse than a table rebuild.
+
+Secrets: `BETTER_AUTH_SECRET` and `GOOGLE_CLIENT_SECRET` are Worker secrets; `GOOGLE_CLIENT_ID` is
+public and lives in `wrangler.jsonc`.
+
 ## Security headers
 
 Two surfaces, two mechanisms, because they are served by two different things.

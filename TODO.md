@@ -188,6 +188,31 @@ static-serving tests (assets are the binding's job, verified against the live UR
       drift from — the spec is compiled on every install. `knip` needs `ignoreDependencies: ["zod"]`
       as a result: zod is only imported by generated code that knip cannot see.
 
+## Auth (epic #33)
+
+- [x] **Better Auth, matching numbat** — drizzle/D1 adapter, Google as a social provider,
+      `/api/auth/*`, `requireSession`. Sessions in D1 (revocable), CSRF enforced by the library
+      (a cookie-authenticated POST with no matching `Origin` is 403, and there is a test for it).
+- [x] **#28 ownership** — `items.owner`, every query filtered by it, `DELETE` scoped so another
+      user's id is 404 rather than 403. Verified end to end with two accounts on a local Worker;
+      dropping the list filter fails 3 tests, dropping the delete scope fails 2.
+- [ ] **Contract migration for `owner NOT NULL`**, once this Worker is deployed. Two deploys: the
+      expand half is safe with the old code, the tighten half is not.
+- [x] **#29 sign-in UI** — "Continue with Google" when signed out; email and sign-out when in.
+- [x] **#30 is moot** — the redirect flow loads no script from `accounts.google.com`, so
+      `script-src 'self'` needs no allowance. Close the issue.
+- [ ] **The four failures that had to be fixed before sign-in worked**, each masking the next:
+      1. `SECRET_REQUIRED` — `BETTER_AUTH_SECRET` and `GOOGLE_CLIENT_SECRET` not set on the Worker.
+         `npm run smoke` passed anyway: it only proves the signed-out surface.
+      2. `redirect_uri_mismatch`, twice — the URI was missing, then added in the **wrong project**.
+         A Google client id's prefix is its project number, so `gcloud projects list` identifies
+         the right console in one line. gcloud cannot edit redirect URIs; there is no API for them.
+      3. `invalid_code` — Better Auth flattens any exchange failure into this. The Worker log
+         (`wrangler tail`) is the only place the real error appears.
+      4. `invalid_client` — the secret on the Worker did not match the client. Piping it in from
+         `google-oauth.json` instead of pasting removed the transcription step.
+      Lesson: the UI error is a summary, the Worker log is the evidence.
+
 ## Review
 
 A full read of the code with grades and evidence is in `docs/code-review.md` (reviewed object
