@@ -14,6 +14,26 @@ const del = (id: string) => SELF.fetch(`http://zero.test/api/items/${id}`, { met
 
 const items = async (): Promise<Item[]> => (await (await get()).json()) as Item[];
 
+describe("security headers", () => {
+  test("API responses carry nosniff, a referrer policy and no framing", async () => {
+    const res = await get();
+
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+  });
+
+  test("no CSP and no HSTS from the Worker", async () => {
+    // The page's CSP lives in public/_headers, since assets never reach the Worker.
+    // HSTS is left to the zone: includeSubDomains is a promise for every host under
+    // the domain, and this Worker does not get to make it.
+    const res = await get();
+
+    expect(res.headers.get("content-security-policy")).toBeNull();
+    expect(res.headers.get("strict-transport-security")).toBeNull();
+  });
+});
+
 describe("GET /api/items", () => {
   test("returns the seeded items in insertion order", async () => {
     const res = await get();

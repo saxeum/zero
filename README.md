@@ -91,6 +91,36 @@ deploys: expand, then contract.
 `npm run deploy` still works from a laptop, and until the secret exists it is the only way to ship.
 That makes it the one documented exception to "nothing is applied outside the pipeline".
 
+## Security headers
+
+Two surfaces, two mechanisms, because they are served by two different things.
+
+**The page and its bundle** never reach the Worker — the assets binding answers them — so their
+policy is `public/_headers`:
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; …
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+```
+
+Every source is `'self'` because the build emits one external module script and one external
+stylesheet, with no inline script, no inline style and no `eval`. That is what makes a strict policy
+possible without nonces or hashes — and the CSP is what will complain loudly, in the browser console,
+if that ever stops being true.
+
+**The API** gets its headers from Hono's `secureHeaders()` in `server/app.ts`: `nosniff`,
+`strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, plus the cross-origin isolation pair.
+Deliberately *not* set there:
+
+- **no CSP** — inert on JSON; `nosniff` is what stops a JSON body being rendered as a document.
+- **no HSTS** — `includeSubDomains` is a promise for every host under `foonix.net`, which a toy app
+  has no business making. That belongs to the zone.
+
+`npm run smoke` asserts the CSP and `nosniff` are present on the deployed page, and the API tests
+assert the two absences above, so neither decision can be reversed by accident.
+
 ## Layout
 
 ```

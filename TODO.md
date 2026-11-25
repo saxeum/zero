@@ -173,6 +173,10 @@ static-serving tests (assets are the binding's job, verified against the live UR
       a POST→DELETE round trip, unknown-field rejection and 404s, and runs as the last step of the
       deploy workflow. It creates one item and deletes it. Proved it fails: against a closed port
       (8/8 fail, exit 1) and against `example.com` (exit 1).
+- [x] **Security headers, on both surfaces.** Assets get theirs from `public/_headers` (verified
+      that Workers static assets honours it); the API from Hono. Verified in a headless browser:
+      page renders, Enter adds an item, no CSP violations in the console — which is the check that
+      matters, because a broken CSP is a 200 with a blank page.
 - [ ] A red smoke test does not roll back. Production is already updated when it runs, so the next
       question is whether the deploy job should call `wrangler rollback` on failure — or whether
       that is more dangerous than leaving it and looking.
@@ -192,7 +196,7 @@ A full read of the code with grades and evidence is in `docs/code-review.md` (re
 | | |
 |---|---|
 | #15 | ~~cap item size~~ — done: `maxLength: 1000` on `NewItem.text`, writes only |
-| #16 | security headers and a CSP |
+| #16 | ~~security headers~~ — done: `public/_headers` for assets, `secureHeaders()` for the API |
 | #17 | eslint with `react-hooks`, since no gate enforces hook rules |
 | #18 | paginate `GET /api/items` |
 | #19 | deploy from GitHub Actions with a scoped Cloudflare token |

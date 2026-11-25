@@ -1,0 +1,14 @@
+# Cloudflare Workers static assets honours this file (verified against wrangler dev).
+#
+# The Worker never sees these requests — assets are answered before it runs — so the
+# policy for the page and its bundle lives here, and /api/* gets its headers from Hono.
+#
+# Every source is 'self': the build emits one external module script and one external
+# stylesheet, with no inline script, no inline style and no eval. If that ever changes,
+# this policy is what will tell you — loudly, in the browser console.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
