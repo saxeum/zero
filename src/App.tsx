@@ -43,7 +43,9 @@ function Items({ email }: { email: string }) {
       <div className="row">
         <h1>items</h1>
         <span className="muted account">
-          {email} <button onClick={() => signOut()}>sign out</button>
+          {email} <button className="compact" onClick={() => signOut()}>
+            sign out
+          </button>
         </span>
       </div>
       <form onSubmit={submit}>
