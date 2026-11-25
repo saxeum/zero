@@ -112,6 +112,23 @@ would confirm the row exists.
 enforces foreign keys (`PRAGMA foreign_keys = 1`), so this is a real constraint rather than
 documentation: an item cannot exist without its user, and deleting a user deletes their items.
 
+### What the library's tables are for
+
+- **`user`** — one row per account, keyed by a generated id, with email and name.
+- **`account`** — one row per *way of signing in*, many-to-one onto `user`: `provider_id` is
+  `google` or `credential`, `account_id` is Google's `sub`, and `password` is set only for the
+  development-only password flow. Tokens and scopes live here too. A user with Google *and* a
+  password has two rows — which is why this edge is drawn many-to-one.
+- **`session`** — one row per signed-in browser: token, expiry, ip, user agent.
+- **`verification`** — short-lived proof-of-possession rows, keyed by `identifier`. In this app it
+  holds `auth-state:*` entries for the duration of an OAuth redirect (about ten minutes); it is
+  also where email-verification and password-reset tokens would go, which this app never issues.
+
+**Foreign key style.** `items` declares its key as a table-level `FOREIGN KEY (owner) REFERENCES
+user(id)`, not inline on the column, purely so the Cloudflare D1 explorer draws the edge — its
+parser only recognises that form. SQLite enforces both identically; `PRAGMA foreign_key_list` is
+the source of truth either way.
+
 **Table naming:** tables *we* own are plural (`items`); tables a *library* owns keep the library's
 names (`user`, `session`, `account`, `verification`), because those are baked into Better Auth's
 queries and every example. `~/soper/numbat` splits the same way — `api_keys`, `conversations`,
