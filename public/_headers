@@ -8,7 +8,12 @@
 # this policy is what will tell you — loudly, in the browser console.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+  # Cloudflare injects its Web Analytics beacon into HTML at the edge, so the page
+  # carries one third-party script that this app never asked for. Allowlisting it is
+  # the price of keeping the console clean; the alternative is turning off RUM
+  # auto-injection, which is a zone-wide setting and would also stop it for numbat.
+  # Delete these two origins if the analytics are not wanted.
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
