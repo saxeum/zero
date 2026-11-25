@@ -11,7 +11,7 @@ npm run load
 which is:
 
 ```sh
-autocannon -c 100 -d 10 http://localhost:3000/api/items
+autocannon -c 100 -d 10 http://127.0.0.1:8787/api/items
 ```
 
 It targets `/api/items`, not `/` — the API is the thing that changes; `/` is a
@@ -22,11 +22,17 @@ static file and mostly measures the page cache.
 A number without its conditions is a rumour. Write the whole line:
 
 ```
-<meta> | <req/s avg> | <p99 latency> | branch <sha> | dev build, dist served from :3000,
-warm (3rd run), <machine/cpu count>
+<meta> | <req/s avg> | <p99 latency> | branch <sha> | which runtime (wrangler dev or the
+old Node server), warm (3rd run), <machine/cpu count>
 ```
 
-Measurements on this machine, `npm run load` (100 connections, 10s), second run, warm:
+The numbers below were taken against the **Node server that no longer exists** (`@hono/node-server`,
+`node:sqlite`, `dist/` served from :3000). They are kept as history, not as a baseline: the app now
+runs in workerd, where `wrangler dev` numbers are dominated by miniflare overhead and say nothing
+about production. Nobody has measured the deployed Worker, and load-testing a public URL on purpose
+needs a conversation first.
+
+Historical, Node server, `npm run load` (100 connections, 10s), second run, warm:
 
 | when | req/s (avg) | p50 | p99 |
 |---|---|---|---|
