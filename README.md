@@ -124,6 +124,15 @@ documentation: an item cannot exist without its user, and deleting a user delete
   holds `auth-state:*` entries for the duration of an OAuth redirect (about ten minutes); it is
   also where email-verification and password-reset tokens would go, which this app never issues.
 
+**Do not drop these tables to "simplify" the schema.** Both were tested by deletion:
+
+- `account` — fails loudly. `DROP TABLE account` → `no such table: account` on every auth path,
+  because the password hash and the Google provider link both live there.
+- `verification` — fails **silently**. The suite passes with it gone (38 green), because nothing
+  tests the Google redirect; but the OAuth state row (`auth-state:<state>`) is looked up on the
+  callback, so login breaks in production with CI green. It is the sharpest example in this repo
+  of a check that cannot see what it is checking.
+
 **Foreign key style.** `items` declares its key as a table-level `FOREIGN KEY (owner) REFERENCES
 user(id)`, not inline on the column, purely so the Cloudflare D1 explorer draws the edge — its
 parser only recognises that form. SQLite enforces both identically; `PRAGMA foreign_key_list` is
