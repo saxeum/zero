@@ -19,6 +19,12 @@ paths:
       operationId: listItems
       summary: List every item, in insertion order
       responses:
+        "401":
+          description: No valid session cookie (Better Auth's /api/auth routes issue it)
+          content:
+            text/plain:
+              schema:
+                type: string
         "200":
           description: The full list
           headers:
@@ -55,6 +61,9 @@ paths:
             text/plain:
               schema:
                 type: string
+
+  # Session endpoints live at /api/auth/* and are owned by Better Auth: they are
+  # library-shaped, so they are deliberately not described here.
 
   /api/items/{id}:
     delete:

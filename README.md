@@ -145,7 +145,8 @@ test-setup.ts         applies migrations and resets rows between tests
 ## API
 
 Three endpoints — `GET /api/items`, `POST /api/items`, `DELETE /api/items/{id}` — described in
-`openapi.yaml`, which is authoritative. `POST` rejects text over 1000 characters; `Item.text` is
+`openapi.yaml`, which is authoritative. Session endpoints live under `/api/auth/*` and are owned by
+Better Auth, so they are library-shaped and deliberately not in the spec. `POST` rejects text over 1000 characters; `Item.text` is
 deliberately uncapped so existing rows stay readable if the limit ever changes. Deliberately not repeated here: a second description of
 the API is the drift this project spent a rung removing.
 

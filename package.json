@@ -24,6 +24,9 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.28",
+    "better-auth": "^1.7.28",
+    "drizzle-orm": "^0.45.4",
     "hono": "^4.13.21",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

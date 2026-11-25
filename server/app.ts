@@ -1,9 +1,16 @@
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
+import { createMiddleware } from "hono/factory";
 import { createStore } from "./store.ts";
+import { createAuth } from "./auth.ts";
 import { CreateItemBody } from "../shared/generated/api.ts";
 
-export const app = new Hono<{ Bindings: Env }>();
+type Variables = {
+  user: { id: string; email: string };
+  userId: string;
+};
+
+export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // Only the API gets these: the page and its bundle are served by the assets binding
 // before this Worker runs, and their policy lives in public/_headers. A CSP on a JSON
@@ -20,6 +27,25 @@ app.use(
     referrerPolicy: "strict-origin-when-cross-origin",
   }),
 );
+
+// Better Auth owns its own routes: sign-in, the Google callback, sign-out, get-session.
+// They are library-shaped, so they are deliberately not in openapi.yaml.
+app.all("/api/auth/*", (c) => createAuth(c.env).handler(c.req.raw));
+
+/** Requires a valid session cookie, and puts the user on the context. */
+const requireSession = createMiddleware<{ Bindings: Env; Variables: Variables }>(
+  async (c, next) => {
+    const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
+    if (!session) return c.text("unauthorized\n", 401);
+
+    c.set("user", session.user);
+    c.set("userId", session.user.id);
+    await next();
+  },
+);
+
+// One guard covers /api/items and /api/items/:id — the wildcard matches the bare path.
+app.use("/api/items/*", requireSession);
 
 app.get("/api/items", async (c) =>
   c.json(await createStore(c.env.DB).list(), 200, { "Cache-Control": "no-store" }),

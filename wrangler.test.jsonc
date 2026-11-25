@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zero",
+  "main": "server/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "437820789284-v5n17o720mm9tpggdd2cb2q7v4vvqa1o.apps.googleusercontent.com",
+    "BETTER_AUTH_URL": "http://zero.test",
+    "ENVIRONMENT": "development"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zero",
+      "database_id": "03de2bb9-a056-4f67-ac3c-4718eb252cf9",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "zero.foonix.net",
+      "custom_domain": true
+    }
+  ]
+}

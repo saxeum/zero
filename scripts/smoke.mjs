@@ -4,7 +4,9 @@
 //
 //   npm run smoke -- https://zero.foonix.net
 //
-// It creates one item and deletes it again, so it is safe to run on every deploy.
+// Sign-in is a Google redirect, which cannot be automated here, so this proves the
+// page boots with its headers and that the API refuses anonymous callers. The write
+// path is covered by the vitest suite against a real local D1.
 const base = process.argv[2]?.replace(/\/$/, "");
 
 if (!base) {
@@ -13,15 +15,13 @@ if (!base) {
 }
 
 const results = [];
-const text = `smoke ${new Date().toISOString()}`;
 
 const request = (path, init = {}) =>
   fetch(base + path, { ...init, signal: AbortSignal.timeout(10_000) });
 
 async function check(name, fn) {
   try {
-    const detail = await fn();
-    results.push({ name, ok: true, detail });
+    results.push({ name, ok: true, detail: await fn() });
   } catch (err) {
     results.push({ name, ok: false, detail: err instanceof Error ? err.message : String(err) });
   }
@@ -30,8 +30,6 @@ async function check(name, fn) {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
-
-let createdId = null;
 
 console.log(`smoke: ${base}\n`);
 
@@ -46,79 +44,55 @@ await check("GET /", async () => {
 });
 
 await check("GET / has a CSP and nosniff", async () => {
-  // These come from public/_headers via the assets binding, which curl-level checks are
-  // the only way to see: the Worker never handles this request.
+  // From public/_headers via the assets binding: the Worker never handles this request,
+  // so checking at the edge is the only way to see it.
   const res = await request("/");
   const csp = res.headers.get("content-security-policy") ?? "";
   assert(csp.includes("default-src 'self'"), `no usable CSP on the page: "${csp}"`);
-  assert(
-    csp.includes("frame-ancestors 'none'"),
-    "CSP does not forbid framing — clickjacking is open",
-  );
+  assert(csp.includes("frame-ancestors 'none'"), "CSP does not forbid framing");
   assert(res.headers.get("x-content-type-options") === "nosniff", "no nosniff on the page");
   return "CSP + nosniff";
 });
 
-await check("GET /api/items", async () => {
-  const res = await request("/api/items");
+await check("GET /api/auth/get-session is 200 with no session", async () => {
+  // Better Auth's own endpoint: signed out is an empty 200, not an error.
+  const res = await request("/api/auth/get-session");
   assert(res.status === 200, `expected 200, got ${res.status}`);
-  const items = await res.json();
-  assert(Array.isArray(items), "expected an array");
-  for (const item of items) {
-    assert(
-      typeof item?.id === "string" && typeof item?.text === "string",
-      `item is off-shape: ${JSON.stringify(item)}`,
-    );
-  }
-  return `200, ${items.length} items`;
+  const body = await res.text();
+  assert(body === "null" || body === "", `expected an empty session, got "${body.slice(0, 40)}"`);
+  return "200, empty";
 });
 
-await check("POST /api/items", async () => {
+await check("GET /api/items without a session is 401", async () => {
+  const res = await request("/api/items");
+  assert(res.status === 401, `expected 401, got ${res.status}`);
+  return "401";
+});
+
+await check("POST /api/items without a session is 401", async () => {
   const res = await request("/api/items", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text: "smoke should not create this" }),
   });
-  assert(res.status === 201, `expected 201, got ${res.status}`);
-  const item = await res.json();
-  assert(item.text === text, `created item has text "${item.text}"`);
-  assert(typeof item.id === "string" && item.id.length > 0, "no id on the created item");
-  createdId = item.id;
-  return `201, id=${item.id.slice(0, 8)}…`;
+  assert(res.status === 401, `expected 401, got ${res.status}`);
+  return "401";
 });
 
-await check("GET /api/items shows the new item", async () => {
-  assert(createdId !== null, "nothing was created");
-  const items = await (await request("/api/items")).json();
-  assert(
-    items.some((item) => item.id === createdId),
-    "the item is missing from the list",
-  );
-  return "present";
+await check("DELETE /api/items/:id without a session is 401", async () => {
+  const res = await request("/api/items/anything", { method: "DELETE" });
+  assert(res.status === 401, `expected 401, got ${res.status}`);
+  return "401";
 });
 
-await check("POST /api/items rejects an unknown field", async () => {
-  const res = await request("/api/items", {
+await check("a cookie-authenticated POST without Origin is refused", async () => {
+  // Better Auth's CSRF check. A forged cookie plus no Origin must not be accepted.
+  const res = await request("/api/auth/sign-out", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: "x", id: "chosen-by-client" }),
+    headers: { Cookie: "better-auth.session_token=forged.token" },
   });
-  assert(res.status === 400, `expected 400, got ${res.status}`);
-  return "400";
-});
-
-await check("DELETE /api/items/:id", async () => {
-  assert(createdId !== null, "nothing to delete");
-  const res = await request(`/api/items/${createdId}`, { method: "DELETE" });
-  assert(res.status === 204, `expected 204, got ${res.status}`);
-  return "204";
-});
-
-await check("DELETE is not idempotent in status", async () => {
-  assert(createdId !== null, "nothing to delete");
-  const res = await request(`/api/items/${createdId}`, { method: "DELETE" });
-  assert(res.status === 404, `expected 404 on the second delete, got ${res.status}`);
-  return "404";
+  assert(res.status === 403 || res.status === 401, `expected 403/401, got ${res.status}`);
+  return String(res.status);
 });
 
 await check("GET /nope", async () => {
@@ -132,15 +106,6 @@ for (const { name, ok, detail } of results) {
 }
 
 const failures = results.filter((result) => !result.ok);
-
-if (createdId !== null) {
-  // Best effort: a leaked row is noise, not a reason to hide the real failure.
-  const res = await request(`/api/items/${createdId}`, { method: "DELETE" }).catch(() => null);
-  if (res && res.status !== 204 && res.status !== 404) {
-    console.error(`warning: could not clean up ${createdId} (${res.status})`);
-  }
-}
-
 console.log(
   `\n${failures.length === 0 ? "smoke passed" : `smoke FAILED: ${failures.length} of ${results.length}`}`,
 );
