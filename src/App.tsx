@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useItems } from "./useItems";
 
 export function App() {
-  const { items, loading, loadError, actionError, add, remove } = useItems();
+  const { items, loading, loadError, actionError, unauthorized, add, remove } = useItems();
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
 
@@ -24,6 +24,16 @@ export function App() {
 
   if (loading) return <p>Loading…</p>;
   if (loadError) return <p>Failed to load: {loadError}</p>;
+  // Honest placeholder: the API requires a session and the sign-in button is not built
+  // yet. Better this than an empty list, which would claim the user has no items.
+  if (unauthorized) {
+    return (
+      <div>
+        <h1>items</h1>
+        <p className="muted">Signing in isn't available yet — the list needs a session.</p>
+      </div>
+    );
+  }
 
   return (
     <div>

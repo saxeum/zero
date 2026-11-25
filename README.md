@@ -1,7 +1,10 @@
 # zero
 
-Live at **https://zero.foonix.net** — public, no accounts, anyone with the URL can add or
-delete items.
+Live at **https://zero.foonix.net**.
+
+The API now requires a session cookie, but the Google sign-in button is not built yet, so the
+deployed page says so rather than showing an empty list. Signing in, and making items belong to
+someone, is epic #33.
 
 A todo list built from scratch, as a way of actually understanding React instead of learning its
 tooling. No component library, no state manager, no ORM, no CSS framework.
@@ -91,6 +94,22 @@ deploys: expand, then contract.
 `npm run deploy` still works from a laptop, and until the secret exists it is the only way to ship.
 That makes it the one documented exception to "nothing is applied outside the pipeline".
 
+## Session
+
+`POST /api/session` takes a **Google ID token** (from Google Identity Services), verifies it in the
+Worker — RS256 against Google's JWKS, plus `iss`, `aud`, `exp` — and sets a signed session cookie
+(`HttpOnly; Secure; SameSite=Lax`, 30 days). `GET /api/session` reports the current user, `DELETE`
+clears it.
+
+The session cookie is `base64url(payload).base64url(HMAC-SHA256)`, keyed by the `SESSION_SECRET`
+Worker secret. Signed, not encrypted: it holds an email, which is not a secret. Verification is
+constant-time (`crypto.subtle.verify`), and any tampering, wrong key or expiry is a plain **401** —
+with no distinction between them, because the caller has no use for it.
+
+`GOOGLE_CLIENT_ID` is public (it is in `wrangler.jsonc`) and every browser receives it. The
+**client secret is not used at all**: this is a public client, the flow has no code exchange, and a
+secret shipped to a browser is not a secret.
+
 ## Security headers
 
 Two surfaces, two mechanisms, because they are served by two different things.
@@ -144,7 +163,7 @@ test-setup.ts         applies migrations and resets rows between tests
 
 ## API
 
-Three endpoints — `GET /api/items`, `POST /api/items`, `DELETE /api/items/{id}` — described in
+`GET|POST|DELETE /api/session` and `GET|POST|DELETE /api/items[/{id}]`, described in
 `openapi.yaml`, which is authoritative. `POST` rejects text over 1000 characters; `Item.text` is
 deliberately uncapped so existing rows stay readable if the limit ever changes. Deliberately not repeated here: a second description of
 the API is the drift this project spent a rung removing.

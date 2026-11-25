@@ -201,6 +201,18 @@ A full read of the code with grades and evidence is in `docs/code-review.md` (re
 | #18 | paginate `GET /api/items` |
 | #19 | deploy from GitHub Actions with a scoped Cloudflare token |
 
+## Auth (epic #33)
+
+- [x] **#27 + #31 — ID token verification and the session cookie.** RS256 against Google's JWKS
+      (`iss`, `aud`, `exp`, `alg` allow-listed), a signed stateless cookie, and `/api/session`.
+      Verification is injectable, so tests generate their own RS256 keypair and exercise the real
+      code path: expired, wrong audience, wrong issuer, `alg: none`, tampered payload, wrong key,
+      unknown `kid`. Three mutations were used to confirm the tests fail for the right reason.
+- [x] The item routes require a session, and the client treats 401 as "signed out" rather than an
+      error — found by a browser check, not by curl: returning early on 401 left the page on
+      "Loading…" forever.
+- [ ] #28 ownership, #29 the sign-in UI, #30 the CSP for accounts.google.com.
+
 ## Gates
 
 ```sh

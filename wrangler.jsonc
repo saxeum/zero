@@ -4,6 +4,8 @@
   "main": "server/worker.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
+  // Public by design: every browser receives it. The client secret is not used at all.
+  "vars": { "GOOGLE_CLIENT_ID": "437820789284-v5n17o720mm9tpggdd2cb2q7v4vvqa1o.apps.googleusercontent.com" },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"

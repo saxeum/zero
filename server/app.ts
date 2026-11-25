@@ -1,9 +1,17 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { secureHeaders } from "hono/secure-headers";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createStore } from "./store.ts";
-import { CreateItemBody } from "../shared/generated/api.ts";
+import { readSession, signSession, verifyIdToken, type Session } from "./auth.ts";
+import { CreateItemBody, CreateSessionBody } from "../shared/generated/api.ts";
 
-export const app = new Hono<{ Bindings: Env }>();
+const COOKIE = "zero_session";
+const SESSION_SECONDS = 60 * 60 * 24 * 30;
+
+type Variables = { session: Session };
+
+export const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // Only the API gets these: the page and its bundle are served by the assets binding
 // before this Worker runs, and their policy lives in public/_headers. A CSP on a JSON
@@ -20,6 +28,62 @@ app.use(
     referrerPolicy: "strict-origin-when-cross-origin",
   }),
 );
+
+const sessionFrom = (c: Context<{ Bindings: Env; Variables: Variables }>) =>
+  readSession(getCookie(c, COOKIE), c.env.SESSION_SECRET);
+
+/**
+ * Guards the item routes. `/api/items/*` covers both `/api/items` and
+ * `/api/items/:id` — verified by removing each half and watching the 401 tests fail,
+ * so one middleware is enough.
+ */
+app.use("/api/items/*", async (c, next) => {
+  const session = await sessionFrom(c);
+  if (!session) return c.text("unauthorized\n", 401);
+  c.set("session", session);
+  await next();
+});
+
+app.get("/api/session", async (c) => {
+  const session = await sessionFrom(c);
+  if (!session) return c.text("unauthorized\n", 401);
+  return c.json({ email: session.email });
+});
+
+app.post("/api/session", async (c) => {
+  const body = await c.req.json().catch(() => undefined);
+
+  let credential: string;
+  try {
+    credential = CreateSessionBody.parse(body).credential;
+  } catch {
+    return c.text("invalid body\n", 400);
+  }
+
+  let session: Session;
+  try {
+    session = await verifyIdToken(credential, { clientId: c.env.GOOGLE_CLIENT_ID });
+  } catch (err) {
+    // Logged, not returned: the reason is for us, the caller gets one answer.
+    console.warn("session rejected:", err instanceof Error ? err.message : err);
+    return c.text("invalid credential\n", 401);
+  }
+
+  setCookie(c, COOKIE, await signSession(session, c.env.SESSION_SECRET), {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+    path: "/",
+    maxAge: SESSION_SECONDS,
+  });
+
+  return c.json({ email: session.email });
+});
+
+app.delete("/api/session", (c) => {
+  deleteCookie(c, COOKIE, { path: "/", secure: true, sameSite: "Lax" });
+  return c.body(null, 204);
+});
 
 app.get("/api/items", async (c) =>
   c.json(await createStore(c.env.DB).list(), 200, { "Cache-Control": "no-store" }),

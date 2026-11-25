@@ -13,3 +13,7 @@ worker-configuration.d.ts
 .env.*
 !.env.example
 google-oauth.json
+# Local worker secrets — never committed.
+.dev.vars
+.dev.vars.*
+google-oauth.json
