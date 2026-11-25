@@ -1,36 +1,89 @@
 import { SELF } from "cloudflare:test";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import type { Item } from "../shared/generated/models.ts";
+import { origin, signIn } from "./testing.ts";
 
-// SELF.fetch goes through the real worker: routing, bindings, D1, the lot.
-const get = () => SELF.fetch("http://zero.test/api/items");
-const post = (body: string) =>
+// SELF.fetch goes through the real worker: routing, bindings, D1, Better Auth, the lot.
+let cookie: string;
+
+beforeAll(async () => {
+  cookie = await signIn();
+});
+
+const auth = (extra: Record<string, string> = {}) => ({ Cookie: cookie, ...extra });
+
+const get = (headers: Record<string, string> = auth()) =>
+  SELF.fetch("http://zero.test/api/items", { headers });
+
+const post = (body: string, headers: Record<string, string> = auth()) =>
   SELF.fetch("http://zero.test/api/items", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body,
   });
-const del = (id: string) => SELF.fetch(`http://zero.test/api/items/${id}`, { method: "DELETE" });
 
-const items = async (): Promise<Item[]> => (await (await get()).json()) as Item[];
+const del = (id: string, headers: Record<string, string> = auth()) =>
+  SELF.fetch(`http://zero.test/api/items/${id}`, { method: "DELETE", headers });
 
-describe("security headers", () => {
-  test("API responses carry nosniff, a referrer policy and no framing", async () => {
-    const res = await get();
+const items = async (headers?: Record<string, string>): Promise<Item[]> =>
+  (await (await get(headers)).json()) as Item[];
 
-    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
-    expect(res.headers.get("x-frame-options")).toBe("DENY");
+describe("auth", () => {
+  test("the dev password flow returns a session", async () => {
+    const res = await SELF.fetch("http://zero.test/api/auth/get-session", {
+      headers: auth(),
+    });
+
+    expect(res.status).toBe(200);
+    const session = (await res.json()) as { user: { email: string } } | null;
+    expect(session?.user.email).toBe("a@example.com");
   });
 
-  test("no CSP and no HSTS from the Worker", async () => {
-    // The page's CSP lives in public/_headers, since assets never reach the Worker.
-    // HSTS is left to the zone: includeSubDomains is a promise for every host under
-    // the domain, and this Worker does not get to make it.
-    const res = await get();
+  test("get-session without a cookie is empty, not an error", async () => {
+    const res = await SELF.fetch("http://zero.test/api/auth/get-session");
 
-    expect(res.headers.get("content-security-policy")).toBeNull();
-    expect(res.headers.get("strict-transport-security")).toBeNull();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toBeNull();
+  });
+
+  test("sign-out invalidates the session it was given", async () => {
+    const fresh = await signIn();
+    const out = await SELF.fetch("http://zero.test/api/auth/sign-out", {
+      method: "POST",
+      // No Origin and this is a 403 — Better Auth's CSRF check, not our code.
+      headers: { Cookie: fresh, Origin: origin },
+    });
+
+    expect(out.ok).toBe(true);
+
+    const after = await SELF.fetch("http://zero.test/api/items", { headers: { Cookie: fresh } });
+    expect(after.status).toBe(401);
+  });
+});
+
+describe("items require a session", () => {
+  test("no cookie: GET, POST and DELETE are all 401", async () => {
+    const none: Record<string, string> = {};
+
+    expect((await get(none)).status).toBe(401);
+    expect((await post(JSON.stringify({ text: "x" }), none)).status).toBe(401);
+    expect((await del("seed-1", none)).status).toBe(401);
+  });
+
+  test("a cookie-authenticated POST without Origin is 403", async () => {
+    // Worth pinning: it is the CSRF defence, and it comes from the library, not from us.
+    const out = await SELF.fetch("http://zero.test/api/auth/sign-out", {
+      method: "POST",
+      headers: { Cookie: cookie },
+    });
+
+    expect(out.status).toBe(403);
+  });
+
+  test("a made-up session cookie is 401", async () => {
+    const res = await get({ Cookie: "better-auth.session_token=not-a-real-token" });
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -86,8 +139,6 @@ describe("POST /api/items", () => {
   });
 
   test("rejects text longer than the 1000-character cap", async () => {
-    // The cap exists to bound the body and the stored row: before it, a 1 MB item was
-    // accepted and every later GET shipped those bytes to every client.
     const res = await post(JSON.stringify({ text: "x".repeat(1001) }));
 
     expect(res.status).toBe(400);
@@ -95,9 +146,7 @@ describe("POST /api/items", () => {
   });
 
   test("accepts text of exactly 1000 characters", async () => {
-    const res = await post(JSON.stringify({ text: "x".repeat(1000) }));
-
-    expect(res.status).toBe(201);
+    expect((await post(JSON.stringify({ text: "x".repeat(1000) }))).status).toBe(201);
   });
 });
 
@@ -114,5 +163,22 @@ describe("DELETE /api/items/:id", () => {
   test("is not idempotent in status: the second call is 404", async () => {
     expect((await del("seed-1")).status).toBe(204);
     expect((await del("seed-1")).status).toBe(404);
+  });
+});
+
+describe("security headers", () => {
+  test("API responses carry nosniff, a referrer policy and no framing", async () => {
+    const res = await get();
+
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+  });
+
+  test("no CSP and no HSTS from the Worker", async () => {
+    const res = await get();
+
+    expect(res.headers.get("content-security-policy")).toBeNull();
+    expect(res.headers.get("strict-transport-security")).toBeNull();
   });
 });

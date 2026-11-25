@@ -1,7 +1,20 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useItems } from "./useItems";
+import { signOut, useSession } from "./auth-client";
+import { SignIn } from "./SignIn";
 
 export function App() {
+  const session = useSession();
+
+  if (session.isPending) return <p>Loading…</p>;
+  // Gate on the session rather than reacting to a 401 from the list: the list should
+  // never be asked for without one.
+  if (!session.data) return <SignIn />;
+
+  return <Items email={session.data.user.email} />;
+}
+
+function Items({ email }: { email: string }) {
   const { items, loading, loadError, actionError, add, remove } = useItems();
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
@@ -27,7 +40,12 @@ export function App() {
 
   return (
     <div>
-      <h1>items</h1>
+      <div className="row">
+        <h1>items</h1>
+        <span className="muted account">
+          {email} <button onClick={() => signOut()}>sign out</button>
+        </span>
+      </div>
       <form onSubmit={submit}>
         <input
           value={draft}

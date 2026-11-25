@@ -72,6 +72,16 @@ form button:hover {
   color: #666;
 }
 
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account {
+  margin-left: auto;
+}
+
 ul {
   margin: 0.5rem 0 0;
   padding: 0;

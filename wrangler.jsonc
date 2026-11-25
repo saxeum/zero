@@ -4,6 +4,12 @@
   "main": "server/worker.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
+  "vars": {
+    // Public: every browser receives the client id. The client secret is a Worker secret.
+    "GOOGLE_CLIENT_ID": "437820789284-v5n17o720mm9tpggdd2cb2q7v4vvqa1o.apps.googleusercontent.com",
+    "BETTER_AUTH_URL": "https://zero.foonix.net",
+    "ENVIRONMENT": "production"
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"

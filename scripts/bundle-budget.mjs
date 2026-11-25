@@ -7,7 +7,9 @@ import { gzipSync } from "node:zlib";
 import { join } from "node:path";
 
 const DIR = "dist/assets";
-const BUDGET_KB = 95;
+// 95 kB held until Better Auth's client landed (+11 kB: sign-in, sign-out, session
+// lookup and CSRF-aware requests — the cost of not hand-rolling session management).
+const BUDGET_KB = 105;
 
 const assets = readdirSync(DIR).filter((file) => /\.(js|css)$/.test(file));
 
