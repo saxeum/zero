@@ -4,10 +4,13 @@ import type { Item } from "../shared/generated/models.ts";
 import { origin, signIn } from "./testing.ts";
 
 // SELF.fetch goes through the real worker: routing, bindings, D1, Better Auth, the lot.
+// Two accounts, because ownership is the thing under test as much as the API is.
 let cookie: string;
+let other: string;
 
 beforeAll(async () => {
-  cookie = await signIn();
+  cookie = await signIn("a@example.com");
+  other = await signIn("b@example.com");
 });
 
 const auth = (extra: Record<string, string> = {}) => ({ Cookie: cookie, ...extra });
@@ -30,9 +33,7 @@ const items = async (headers?: Record<string, string>): Promise<Item[]> =>
 
 describe("auth", () => {
   test("the dev password flow returns a session", async () => {
-    const res = await SELF.fetch("http://zero.test/api/auth/get-session", {
-      headers: auth(),
-    });
+    const res = await SELF.fetch("http://zero.test/api/auth/get-session", { headers: auth() });
 
     expect(res.status).toBe(200);
     const session = (await res.json()) as { user: { email: string } } | null;
@@ -47,7 +48,7 @@ describe("auth", () => {
   });
 
   test("sign-out invalidates the session it was given", async () => {
-    const fresh = await signIn();
+    const fresh = await signIn("c@example.com");
     const out = await SELF.fetch("http://zero.test/api/auth/sign-out", {
       method: "POST",
       // No Origin and this is a 403 — Better Auth's CSRF check, not our code.
@@ -67,7 +68,13 @@ describe("items require a session", () => {
 
     expect((await get(none)).status).toBe(401);
     expect((await post(JSON.stringify({ text: "x" }), none)).status).toBe(401);
-    expect((await del("seed-1", none)).status).toBe(401);
+    expect((await del("anything", none)).status).toBe(401);
+  });
+
+  test("a made-up session cookie is 401", async () => {
+    const res = await get({ Cookie: "better-auth.session_token=not-a-real-token" });
+
+    expect(res.status).toBe(401);
   });
 
   test("a cookie-authenticated POST without Origin is 403", async () => {
@@ -79,24 +86,15 @@ describe("items require a session", () => {
 
     expect(out.status).toBe(403);
   });
-
-  test("a made-up session cookie is 401", async () => {
-    const res = await get({ Cookie: "better-auth.session_token=not-a-real-token" });
-
-    expect(res.status).toBe(401);
-  });
 });
 
 describe("GET /api/items", () => {
-  test("returns the seeded items in insertion order", async () => {
+  test("starts empty — the old seed rows were deleted by the ownership migration", async () => {
     const res = await get();
 
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(await res.json()).toEqual([
-      { id: "seed-1", text: "learn useEffect" },
-      { id: "seed-2", text: "fetch from the server" },
-    ]);
+    expect(await res.json()).toEqual([]);
   });
 });
 
@@ -107,16 +105,15 @@ describe("POST /api/items", () => {
     expect(res.status).toBe(201);
     const created = (await res.json()) as Item;
     expect(created.text).toBe("buy milk");
-    expect(created.id.length).toBeGreaterThan(0);
 
     const all = await items();
-    expect(all).toHaveLength(3);
+    expect(all).toHaveLength(1);
     expect(all.at(-1)).toEqual(created);
   });
 
   test("rejects blank text", async () => {
     expect((await post(JSON.stringify({ text: "   " }))).status).toBe(400);
-    expect(await items()).toHaveLength(2);
+    expect(await items()).toHaveLength(0);
   });
 
   test("rejects a missing text field", async () => {
@@ -131,7 +128,7 @@ describe("POST /api/items", () => {
     const res = await post(JSON.stringify({ text: "milk", id: "chosen-by-client" }));
 
     expect(res.status).toBe(400);
-    expect(await items()).toHaveLength(2);
+    expect(await items()).toHaveLength(0);
   });
 
   test("rejects invalid JSON with 400, not 500", async () => {
@@ -139,10 +136,8 @@ describe("POST /api/items", () => {
   });
 
   test("rejects text longer than the 1000-character cap", async () => {
-    const res = await post(JSON.stringify({ text: "x".repeat(1001) }));
-
-    expect(res.status).toBe(400);
-    expect(await items()).toHaveLength(2);
+    expect((await post(JSON.stringify({ text: "x".repeat(1001) }))).status).toBe(400);
+    expect(await items()).toHaveLength(0);
   });
 
   test("accepts text of exactly 1000 characters", async () => {
@@ -152,17 +147,44 @@ describe("POST /api/items", () => {
 
 describe("DELETE /api/items/:id", () => {
   test("removes the item and returns 204", async () => {
-    expect((await del("seed-1")).status).toBe(204);
-    expect((await items()).map((item) => item.id)).toEqual(["seed-2"]);
+    const created = (await (await post(JSON.stringify({ text: "gone" }))).json()) as Item;
+
+    expect((await del(created.id)).status).toBe(204);
+    expect(await items()).toHaveLength(0);
   });
 
   test("returns 404 for an unknown id", async () => {
-    expect((await del("nope")).status).toBe(404);
+    expect((await del("no-such-id")).status).toBe(404);
   });
 
   test("is not idempotent in status: the second call is 404", async () => {
-    expect((await del("seed-1")).status).toBe(204);
-    expect((await del("seed-1")).status).toBe(404);
+    const created = (await (await post(JSON.stringify({ text: "twice" }))).json()) as Item;
+
+    expect((await del(created.id)).status).toBe(204);
+    expect((await del(created.id)).status).toBe(404);
+  });
+});
+
+describe("ownership", () => {
+  test("another user's list does not contain my items", async () => {
+    await post(JSON.stringify({ text: "mine only" }));
+
+    expect(await items(auth({ Cookie: other }))).toEqual([]);
+  });
+
+  test("I cannot delete another user's item, and it survives", async () => {
+    const created = (await (await post(JSON.stringify({ text: "mine" }))).json()) as Item;
+
+    // 404, not 403: a 403 would confirm the row exists.
+    expect((await del(created.id, auth({ Cookie: other }))).status).toBe(404);
+    expect((await items()).map((item) => item.id)).toEqual([created.id]);
+  });
+
+  test("the same id cannot be used to read another user's item", async () => {
+    const created = (await (await post(JSON.stringify({ text: "private" }))).json()) as Item;
+
+    const theirs = await items(auth({ Cookie: other }));
+    expect(theirs.some((item) => item.id === created.id)).toBe(false);
   });
 });
 

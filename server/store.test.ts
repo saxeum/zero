@@ -2,50 +2,58 @@ import { env } from "cloudflare:test";
 import { describe, expect, test } from "vitest";
 import { createStore } from "./store.ts";
 
-// The store talks to a real D1 database, migrated by test-setup.ts. Isolated storage
-// means each test sees the seed rows and its own writes, then rolls back.
+// The store talks to a real D1 database, migrated by test-setup.ts. Isolation between
+// tests is not provided by the plugin, so test-setup resets the rows before each test.
 const store = () => createStore(env.DB);
 
+const A = "user-a";
+const B = "user-b";
+
 describe("list", () => {
-  test("returns the seeded items in insertion order", async () => {
-    expect(await store().list()).toEqual([
-      { id: "seed-1", text: "learn useEffect" },
-      { id: "seed-2", text: "fetch from the server" },
-    ]);
+  test("starts empty — the old seed rows are deleted by the ownership migration", async () => {
+    expect(await store().list(A)).toEqual([]);
+  });
+
+  test("returns only the calling user's items, in insertion order", async () => {
+    await store().add(A, "first");
+    await store().add(B, "not mine");
+    await store().add(A, "second");
+
+    expect((await store().list(A)).map((item) => item.text)).toEqual(["first", "second"]);
+    expect((await store().list(B)).map((item) => item.text)).toEqual(["not mine"]);
   });
 
   test("returns plain objects, not driver rows", async () => {
-    const [first] = await store().list();
+    await store().add(A, "one");
+    const [first] = await store().list(A);
+
     expect(Object.getPrototypeOf(first)).toBe(Object.prototype);
   });
 });
 
 describe("add", () => {
   test("returns the stored item with a generated id", async () => {
-    const item = await store().add("buy milk");
+    const item = await store().add(A, "buy milk");
 
     expect(item.text).toBe("buy milk");
     expect(item.id.length).toBeGreaterThan(0);
-    expect((await store().list()).at(-1)).toEqual(item);
-  });
-
-  test("appends after the existing rows", async () => {
-    await store().add("first");
-    await store().add("second");
-
-    expect((await store().list()).map((item) => item.text)).toEqual([
-      "learn useEffect",
-      "fetch from the server",
-      "first",
-      "second",
-    ]);
+    expect((await store().list(A)).at(-1)).toEqual(item);
   });
 });
 
 describe("remove", () => {
   test("reports whether anything was deleted", async () => {
-    expect(await store().remove("seed-1")).toBe(true);
-    expect(await store().remove("seed-1")).toBe(false);
-    expect((await store().list()).map((item) => item.id)).toEqual(["seed-2"]);
+    const item = await store().add(A, "gone");
+
+    expect(await store().remove(A, item.id)).toBe(true);
+    expect(await store().remove(A, item.id)).toBe(false);
+    expect(await store().list(A)).toEqual([]);
+  });
+
+  test("will not delete another user's item, and does not distinguish it from a missing one", async () => {
+    const mine = await store().add(A, "mine");
+
+    expect(await store().remove(B, mine.id)).toBe(false);
+    expect((await store().list(A)).map((item) => item.id)).toEqual([mine.id]);
   });
 });

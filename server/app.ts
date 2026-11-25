@@ -48,7 +48,7 @@ const requireSession = createMiddleware<{ Bindings: Env; Variables: Variables }>
 app.use("/api/items/*", requireSession);
 
 app.get("/api/items", async (c) =>
-  c.json(await createStore(c.env.DB).list(), 200, { "Cache-Control": "no-store" }),
+  c.json(await createStore(c.env.DB).list(c.get("userId")), 200, { "Cache-Control": "no-store" }),
 );
 
 app.post("/api/items", async (c) => {
@@ -62,11 +62,13 @@ app.post("/api/items", async (c) => {
   }
   if (!text) return c.text("text required\n", 400);
 
-  return c.json(await createStore(c.env.DB).add(text), 201);
+  return c.json(await createStore(c.env.DB).add(c.get("userId"), text), 201);
 });
 
 app.delete("/api/items/:id", async (c) => {
-  if (!(await createStore(c.env.DB).remove(c.req.param("id")))) {
+  // Scoped to the owner, so someone else's id answers 404 exactly like a missing one:
+  // a 403 would confirm the row exists.
+  if (!(await createStore(c.env.DB).remove(c.get("userId"), c.req.param("id")))) {
     return c.text("not found\n", 404);
   }
   return c.body(null, 204);

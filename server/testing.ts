@@ -1,6 +1,5 @@
 import { env, SELF } from "cloudflare:test";
 
-const EMAIL = "a@example.com";
 const PASSWORD = "password1234";
 
 /**
@@ -12,8 +11,8 @@ const PASSWORD = "password1234";
 // http://zero.test. Hard-coding either one makes the suite pass in exactly one place.
 export const origin = (env as unknown as { BETTER_AUTH_URL: string }).BETTER_AUTH_URL;
 
-export async function signIn(): Promise<string> {
-  const body = JSON.stringify({ email: EMAIL, password: PASSWORD, name: "A" });
+export async function signIn(email = "a@example.com"): Promise<string> {
+  const body = JSON.stringify({ email, password: PASSWORD, name: email });
 
   for (const path of ["/api/auth/sign-up/email", "/api/auth/sign-in/email"]) {
     const res = await SELF.fetch(`http://zero.test${path}`, {
