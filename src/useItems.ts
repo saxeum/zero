@@ -7,6 +7,7 @@ export function useItems() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -30,6 +31,8 @@ export function useItems() {
 
   /** Returns true when the server accepted the item, so the caller can clear its input. */
   async function add(text: string) {
+    if (adding) return false;
+    setAdding(true);
     setActionError(null);
     try {
       const res = await fetch("/api/items", {
@@ -44,6 +47,8 @@ export function useItems() {
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
       return false;
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -58,5 +63,5 @@ export function useItems() {
     }
   }
 
-  return { items, loading, loadError, actionError, add, remove };
+  return { items, loading, loadError, actionError, adding, add, remove };
 }

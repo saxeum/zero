@@ -15,10 +15,9 @@ export function App() {
 }
 
 function Items({ email }: { email: string }) {
-  const { items, loading, loadError, actionError, add, remove } = useItems();
+  const { items, loading, loadError, actionError, adding, add, remove } = useItems();
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
-  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     document.title = `Todos: ${items.length}`;
@@ -27,14 +26,8 @@ function Items({ email }: { email: string }) {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || adding) return;
-
-    setAdding(true);
-    try {
-      if (await add(text)) setDraft("");
-    } finally {
-      setAdding(false);
-    }
+    if (!text) return;
+    if (await add(text)) setDraft("");
   };
 
   const needle = query.trim().toLowerCase();
