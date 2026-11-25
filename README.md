@@ -108,6 +108,17 @@ Ownership: every item belongs to the `sub` of the account that created it, all t
 on it, and `DELETE` is scoped the same way — another user's id is **404, not 403**, because a 403
 would confirm the row exists.
 
+`items.owner` carries a **foreign key** to `user(id) ON DELETE CASCADE`. D1 enforces foreign keys
+(`PRAGMA foreign_keys = 1`; an orphan insert fails with `SQLITE_CONSTRAINT_FOREIGNKEY`), so this is
+a real constraint rather than documentation — an item cannot outlive its user. It also made the
+store tests honest: they used to insert items for made-up owners like `"user-a"`, which the
+constraint rejected until the fixture created real rows.
+
+**Table naming:** tables *we* own are plural (`items`); tables a *library* owns keep the library's
+names (`user`, `session`, `account`, `verification`), because those names are baked into Better
+Auth's queries and every example. `~/soper/numbat` splits the same way (`api_keys`, `conversations`,
+`messages` beside `user`, `session`). Renaming library tables is possible and not worth it.
+
 `migrations/0004_owner.sql` is the **expand** half: old rows deleted, `owner` added nullable.
 Migrations run before the Worker deploys, so rows written by the previous Worker during that window
 have `owner IS NULL` and are invisible to every query. Tightening to `NOT NULL` is a separate

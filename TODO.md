@@ -193,8 +193,14 @@ static-serving tests (assets are the binding's job, verified against the live UR
 - [x] **Better Auth, matching numbat** — drizzle/D1 adapter, Google as a social provider,
       `/api/auth/*`, `requireSession`. Sessions in D1 (revocable), CSRF enforced by the library
       (a cookie-authenticated POST with no matching `Origin` is 403, and there is a test for it).
-- [x] **#28 ownership** — `items.owner`, every query filtered by it, `DELETE` scoped so another
-      user's id is 404 rather than 403. Verified end to end with two accounts on a local Worker;
+- [x] **#28 ownership** — `items.owner` with a **foreign key** to `user(id) ON DELETE CASCADE`
+      (D1 enforces FKs, verified: an orphan insert fails with `SQLITE_CONSTRAINT_FOREIGNKEY`), every
+      query filtered by owner, `DELETE` scoped so another user's id is 404 rather than 403.
+      The FK immediately caught something: the store tests were inserting items for invented owners,
+      which is exactly the data the constraint exists to prevent.
+- [x] **Table naming, decided:** our tables plural (`items`), library tables keep the library's
+      names (`user`, `session`, `account`, `verification`). Same split as numbat. Renaming library
+      tables would buy nothing and couple us to a config detail. Verified end to end with two accounts on a local Worker;
       dropping the list filter fails 3 tests, dropping the delete scope fails 2.
 - [ ] **Contract migration for `owner NOT NULL`**, once this Worker is deployed. Two deploys: the
       expand half is safe with the old code, the tighten half is not.
