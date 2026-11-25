@@ -28,7 +28,17 @@ export function createAuth(env: Env) {
     // trip through Google. Production and preview are reachable by anyone, so they must
     // not offer password sign-up.
     emailAndPassword: { enabled: env.ENVIRONMENT === "development" },
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    // Better Auth rejects a cookie-authenticated POST whose Origin is not trusted, which
+    // is the CSRF defence. In development the browser's origin is Vite's (:5173) while the
+    // API listens on :8798, so the two differ by design — hence the extra list, empty in
+    // production.
+    trustedOrigins: [
+      env.BETTER_AUTH_URL,
+      ...(env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ],
   });
 }
 
