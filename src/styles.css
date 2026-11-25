@@ -76,10 +76,24 @@ form button:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* The heading's own bottom margin would sit inside this flex row, making the row
+     taller than either item and letting the button drift below the baseline. */
+  margin-bottom: 1rem;
+}
+
+.row h1 {
+  margin: 0;
 }
 
 .account {
   margin-left: auto;
+}
+
+/* A control that sits inside a line of text: the shared button padding is sized for the
+   Add button, and next to 16px text it makes the whole row as tall as a control. */
+.compact {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
 }
 
 ul {
