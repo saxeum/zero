@@ -45,6 +45,20 @@ await check("GET /", async () => {
   return `200 ${type}`;
 });
 
+await check("GET / has a CSP and nosniff", async () => {
+  // These come from public/_headers via the assets binding, which curl-level checks are
+  // the only way to see: the Worker never handles this request.
+  const res = await request("/");
+  const csp = res.headers.get("content-security-policy") ?? "";
+  assert(csp.includes("default-src 'self'"), `no usable CSP on the page: "${csp}"`);
+  assert(
+    csp.includes("frame-ancestors 'none'"),
+    "CSP does not forbid framing — clickjacking is open",
+  );
+  assert(res.headers.get("x-content-type-options") === "nosniff", "no nosniff on the page");
+  return "CSP + nosniff";
+});
+
 await check("GET /api/items", async () => {
   const res = await request("/api/items");
   assert(res.status === 200, `expected 200, got ${res.status}`);
