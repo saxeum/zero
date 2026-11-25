@@ -10,6 +10,8 @@ declare global {
      */
     ENVIRONMENT?: string;
     BETTER_AUTH_SECRET: string;
+    /** Comma-separated extra origins; set in .dev.vars only, for the Vite dev server. */
+    BETTER_AUTH_TRUSTED_ORIGINS?: string;
     GOOGLE_CLIENT_SECRET: string;
   }
 }

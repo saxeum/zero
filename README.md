@@ -42,6 +42,24 @@ The first time, create and migrate the local database:
 npx wrangler d1 migrations apply zero --local
 ```
 
+`.dev.vars` needs both URLs, and they describe *different* servers:
+
+```sh
+BETTER_AUTH_URL=http://localhost:8787             # the API, as the Worker sees itself
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:5173 # the browser's origin, i.e. Vite
+```
+
+plus `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET` and `ENVIRONMENT=development`.
+
+Better Auth rejects a cookie-authenticated POST whose `Origin` is not trusted — that is its CSRF
+defence, not an obstacle. In development the page is served by Vite on :5173 while the API listens
+on :8787, so the two origins legitimately differ; `BETTER_AUTH_TRUSTED_ORIGINS` is the extra
+allowance, and it is empty in production, where both are `zero.foonix.net`.
+
+Both failure modes look identical from the browser — "sign-in is broken" — so know which one you
+have: a wrong `BETTER_AUTH_URL` gives a `403` with `Invalid origin`; a Vite proxy pointing at a port
+nothing listens on gives a connection error instead.
+
 ## Scripts
 
 | | |
