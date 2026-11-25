@@ -45,20 +45,30 @@ npx wrangler d1 migrations apply zero --local
 `.dev.vars` needs both URLs, and they describe *different* servers:
 
 ```sh
-BETTER_AUTH_URL=http://localhost:8787             # the API, as the Worker sees itself
-BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:5173 # the browser's origin, i.e. Vite
+BETTER_AUTH_URL=http://localhost:8787                                      # the Worker, as it sees itself
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:5173,http://zero.foonix.net   # see below
 ```
 
 plus `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET` and `ENVIRONMENT=development`.
 
 Better Auth rejects a cookie-authenticated POST whose `Origin` is not trusted — that is its CSRF
-defence, not an obstacle. In development the page is served by Vite on :5173 while the API listens
-on :8787, so the two origins legitimately differ; `BETTER_AUTH_TRUSTED_ORIGINS` is the extra
-allowance, and it is empty in production, where both are `zero.foonix.net`.
+defence, not an obstacle. Both entries above are needed in development, for two different reasons:
 
-Both failure modes look identical from the browser — "sign-in is broken" — so know which one you
-have: a wrong `BETTER_AUTH_URL` gives a `403` with `Invalid origin`; a Vite proxy pointing at a port
-nothing listens on gives a connection error instead.
+- **`http://localhost:5173`** — the page is served by Vite while the API listens on :8787, so the
+  browser's origin is legitimately not the API's.
+- **`http://zero.foonix.net`** — `wrangler dev` applies the `custom_domain` route from
+  `wrangler.jsonc` to local requests, so the Worker sees its production hostname over plain http.
+  Sign-out is the tell: the browser sends `Origin: http://localhost:8787`, the Worker compares
+  `http://zero.foonix.net`, and the cookie-authenticated POST is refused while sign-*in* appears to
+  work (the origin check is skipped for requests without a cookie).
+
+`BETTER_AUTH_TRUSTED_ORIGINS` is empty in production, where the page and the API are the same
+origin and only `https` is in play.
+
+Three failure modes look identical from the browser — "sign-in is broken" — so know which one you
+have: a wrong `BETTER_AUTH_URL` gives a `403 Invalid origin`; a Vite proxy aimed at a port nothing
+listens on gives a connection error; and a missing trusted origin gives `403` **only on requests that
+carry a cookie**, so sign-in succeeds and sign-out fails.
 
 ## Scripts
 
