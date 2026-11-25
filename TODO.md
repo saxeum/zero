@@ -196,8 +196,15 @@ static-serving tests (assets are the binding's job, verified against the live UR
 - [x] **#28 ownership** — `items.owner`, every query filtered by it, `DELETE` scoped so another
       user's id is 404 rather than 403. Verified end to end with two accounts on a local Worker;
       dropping the list filter fails 3 tests, dropping the delete scope fails 2.
-- [ ] **Contract migration for `owner NOT NULL`**, once this Worker is deployed. Two deploys: the
-      expand half is safe with the old code, the tighten half is not.
+- [x] **Contract migration** — `0005_items_owner_fk.sql` rebuilds `items` with `owner NOT NULL
+      REFERENCES user(id) ON DELETE CASCADE`. Three tests: an unknown owner is rejected, a NULL
+      owner is rejected, and deleting the user deletes their items. Dropping the `REFERENCES`
+      clause fails two of them.
+- [ ] **Migrations are append-only.** I edited `0004` *after* it was merged and applied, so the
+      repo and production disagreed — the FK and the naming decision were lost with a commit that
+      landed on a branch whose PR had already been merged. Hence `0005` instead of editing `0004`.
+      The rule, now written down: an applied migration is immutable, and a PR merged while you are
+      still committing means your next push creates a new branch, not new commits.
 - [x] **#29 sign-in UI** — "Continue with Google" when signed out; email and sign-out when in.
 - [x] **#30 is moot** — the redirect flow loads no script from `accounts.google.com`, so
       `script-src 'self'` needs no allowance. Close the issue.

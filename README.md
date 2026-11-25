@@ -108,6 +108,20 @@ Ownership: every item belongs to the `sub` of the account that created it, all t
 on it, and `DELETE` is scoped the same way — another user's id is **404, not 403**, because a 403
 would confirm the row exists.
 
+`items.owner` is `NOT NULL` and carries a **foreign key** to `user(id) ON DELETE CASCADE`. D1
+enforces foreign keys (`PRAGMA foreign_keys = 1`), so this is a real constraint rather than
+documentation: an item cannot exist without its user, and deleting a user deletes their items.
+
+**Table naming:** tables *we* own are plural (`items`); tables a *library* owns keep the library's
+names (`user`, `session`, `account`, `verification`), because those are baked into Better Auth's
+queries and every example. `~/soper/numbat` splits the same way — `api_keys`, `conversations`,
+`messages` beside `user`, `session`. Renaming library tables buys nothing.
+
+**Migrations are append-only.** `0004` added `owner` nullable and unfenced, because it had to be
+safe for the Worker still running during that deploy. `0005` rebuilds the table with `NOT NULL` and
+the foreign key, which SQLite cannot add in place. Editing an applied migration is not an option:
+the deployed database and the repo would silently disagree, which is exactly what happened once.
+
 `migrations/0004_owner.sql` is the **expand** half: old rows deleted, `owner` added nullable.
 Migrations run before the Worker deploys, so rows written by the previous Worker during that window
 have `owner IS NULL` and are invisible to every query. Tightening to `NOT NULL` is a separate
